@@ -1009,7 +1009,15 @@ Please provide a helpful response for the contact center agent.`,
   };
 
   // Live KPI state with AI impact comparison
-  const [kpis, setKpis] = useState([
+  const [kpis, setKpis] = useState<Array<{
+    title: string;
+    value: string | number;
+    change: number;
+    icon: React.ReactNode;
+    suffix?: string;
+    withoutAI: string | number;
+    worstChange: number;
+  }>>([
     {
       title: 'Active Citizens',
       value: 23,
@@ -1110,15 +1118,15 @@ Please provide a helpful response for the contact center agent.`,
     return () => clearInterval(interval);
   }, []);
 
-  const agents = [
-    { name: 'Dr. Siti Nurhaliza', status: 'available' as const, callsHandled: 15, avgCallTime: '6:12', rating: 4.9, department: 'Health Services', type: 'human' },
-    { name: 'Encik Rahman Ismail', status: 'busy' as const, callsHandled: 22, avgCallTime: '4:35', rating: 4.8, department: 'Education Services', type: 'human' },
-    { name: 'Puan Aminah Yusof', status: 'available' as const, callsHandled: 18, avgCallTime: '5:45', rating: 4.7, department: 'Social Welfare', type: 'human' },
-    { name: 'Datuk Ahmad Rashid', status: 'away' as const, callsHandled: 12, avgCallTime: '7:20', rating: 4.9, department: 'Legal Services', type: 'human' },
-    { name: 'AI Health Agent', status: 'available' as const, callsHandled: 89, avgCallTime: '0:45', rating: 4.9, department: 'Health AI', type: 'ai' },
-    { name: 'AI Education Agent', status: 'available' as const, callsHandled: 127, avgCallTime: '0:32', rating: 4.8, department: 'Education AI', type: 'ai' },
-    { name: 'AI Welfare Agent', status: 'available' as const, callsHandled: 156, avgCallTime: '0:28', rating: 4.9, department: 'Welfare AI', type: 'ai' },
-    { name: 'AI Legal Agent', status: 'available' as const, callsHandled: 98, avgCallTime: '0:52', rating: 4.8, department: 'Legal AI', type: 'ai' }
+  const agents: AgentCardProps[] = [
+    { name: 'Dr. Siti Nurhaliza', status: 'available' as const, callsHandled: 15, avgCallTime: '6:12', rating: 4.9, department: 'Health Services', type: 'human' as const },
+    { name: 'Encik Rahman Ismail', status: 'busy' as const, callsHandled: 22, avgCallTime: '4:35', rating: 4.8, department: 'Education Services', type: 'human' as const },
+    { name: 'Puan Aminah Yusof', status: 'available' as const, callsHandled: 18, avgCallTime: '5:45', rating: 4.7, department: 'Social Welfare', type: 'human' as const },
+    { name: 'Datuk Ahmad Rashid', status: 'away' as const, callsHandled: 12, avgCallTime: '7:20', rating: 4.9, department: 'Legal Services', type: 'human' as const },
+    { name: 'AI Health Agent', status: 'available' as const, callsHandled: 89, avgCallTime: '0:45', rating: 4.9, department: 'Health AI', type: 'ai' as const },
+    { name: 'AI Education Agent', status: 'available' as const, callsHandled: 127, avgCallTime: '0:32', rating: 4.8, department: 'Education AI', type: 'ai' as const },
+    { name: 'AI Welfare Agent', status: 'available' as const, callsHandled: 156, avgCallTime: '0:28', rating: 4.9, department: 'Welfare AI', type: 'ai' as const },
+    { name: 'AI Legal Agent', status: 'available' as const, callsHandled: 98, avgCallTime: '0:52', rating: 4.8, department: 'Legal AI', type: 'ai' as const }
   ];
 
   const queueItems = [
