@@ -103,7 +103,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ name, status, callsHandled, avgCa
   return (
     <div className={`bg-white rounded-lg p-4 border transition-all duration-300 ${
       isAI 
-        ? 'border-blue-200 bg-blue-50 shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/60' 
+        ? 'border-gray-300 bg-gray-50 shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-gray-300/60' 
         : 'border-gray-100 hover:shadow-sm'
     }`}>
       <div className="flex items-center justify-between mb-3">
@@ -112,7 +112,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ name, status, callsHandled, avgCa
             {isAI ? (
               <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center relative">
                 <span className="text-white font-bold text-xs">AI</span>
-                <div className="absolute inset-0 rounded-full bg-blue-400 animate-pulse opacity-30"></div>
+                <div className="absolute inset-0 rounded-full bg-gray-400 animate-pulse opacity-20"></div>
               </div>
             ) : (
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-800 to-black p-0.5">
@@ -124,13 +124,13 @@ const AgentCard: React.FC<AgentCardProps> = ({ name, status, callsHandled, avgCa
             <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${statusConfig[status].dot} rounded-full border border-white`}></div>
           </div>
           <div>
-            <h4 className={`font-medium text-sm ${isAI ? 'text-blue-900' : 'text-gray-900'}`}>{name}</h4>
+            <h4 className={`font-medium text-sm ${isAI ? 'text-gray-900' : 'text-gray-900'}`}>{name}</h4>
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig[status].color} text-gray-600`}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </span>
               {department && (
-                <span className={`text-xs ${isAI ? 'text-blue-600' : 'text-gray-500'}`}>
+                <span className={`text-xs ${isAI ? 'text-gray-600' : 'text-gray-500'}`}>
                   {department}
                 </span>
               )}

@@ -124,7 +124,8 @@ const CitizenServicesInterface: React.FC = () => {
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Refs for WebRTC
+  // WebRTC refs
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
@@ -496,40 +497,8 @@ You asked: "*${input}*"
     setShowDocumentDetails(true);
   };
 
-  // Call functionality
-  const startCall = async () => {
-    try {
-      setIsCallActive(true);
-      setCallDuration(0);
-      setCallTranscript('');
-      
-      // Start call duration timer
-      const timer = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-      
-      // Initialize WebRTC connection for Realtime API
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-      
-      peerConnectionRef.current = peerConnection;
-      
-      // Set up audio stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-      
-      // Connect to OpenAI Realtime API
-      const response = await fetch('/api/openai-realtime', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'start_session',
-          instructions: `You are a helpful AI Assistant for MALAYSIAN CITIZENS calling the Government Services Hotline. You help citizens with government services using a warm, friendly voice.
+  // Citizen-focused prompt for Realtime API
+  const citizenPrompt = `You are a helpful AI Assistant for MALAYSIAN CITIZENS calling the Government Services Hotline. You help citizens with government services using a warm, friendly voice.
 
 CITIZEN CALL SUPPORT:
 - Speak clearly and at a comfortable pace for citizens of all ages
@@ -537,25 +506,140 @@ CITIZEN CALL SUPPORT:
 - Be patient and understanding with citizen concerns
 - Provide specific information: office locations, forms needed, fees, operating hours
 - Offer multiple options: online, phone, or in-person services
-- Use Malaysian context: RM currency, local place names, respectful terms
+- Use Malaysian context: RM currency, local place names, respectful terms (Encik, Puan)
 
 SERVICES TO HELP WITH:
-🏥 Healthcare: Appointments, MySejahtera, health records, insurance claims
-💰 Finance: Tax filing, EPF, SOCSO, refunds, business licenses  
-📚 Education: School enrollment, scholarships, student loans
-🏠 Housing: PR1MA applications, property matters, rental assistance
-⚖️ Legal: Court procedures, certificates, legal aid
-👥 Welfare: Social assistance, disability support, senior care
+🏥 Healthcare: MySejahtera, hospital appointments, specialist referrals, health insurance claims, medical certificates
+💰 Finance: Income tax filing (e-Filing), EPF withdrawals, SOCSO benefits, business licenses, financial assistance
+📚 Education: School enrollment, university applications, scholarships (JPA, MARA), student loans (PTPTN)
+🏠 Housing: PR1MA homes, affordable housing schemes, housing loans, property registration, rental assistance
+⚖️ Legal: Court procedures, legal aid, marriage/divorce certificates, birth/death certificates, citizenship applications
+👥 Welfare: Zakat assistance, JKM welfare aid, disability benefits, senior citizen support, child welfare services
 
-Remember: You are speaking to Malaysian citizens who need government service help. Be warm, encouraging, and make them feel supported! 🇲🇾`
-        })
+Remember: You are speaking to Malaysian citizens who need government service help. Be warm, encouraging, and make them feel supported! Always ask follow-up questions to ensure they get complete assistance. 🇲🇾`;
+
+  // Handle Realtime API events
+  const handleRealtimeEvent = (event: any) => {
+    console.log('📨 Citizen Services received event:', event.type, event);
+    
+    switch (event.type) {
+      case 'response.audio_transcript.delta':
+        setCallTranscript(prev => prev + event.delta);
+        break;
+        
+      case 'session.created':
+        setIsSessionReady(true);
+        break;
+        
+      case 'response.function_call_arguments.done':
+        console.log('🔧 Citizen Services function call detected:', event.name, event.arguments);
+        break;
+        
+      default:
+        break;
+    }
+  };
+
+  // Call functionality
+  const startCall = async () => {
+    try {
+      setIsCallActive(true);
+      setCallDuration(0);
+      setCallTranscript('');
+      setIsSessionReady(false);
+
+      // Get ephemeral token from our API
+      const tokenResponse = await fetch('/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: citizenPrompt
+        }),
       });
       
-      if (response.ok) {
-        setIsSessionReady(true);
-        setCallTranscript('Connected to Government Services Assistant...');
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get ephemeral token');
       }
       
+      const tokenData = await tokenResponse.json();
+      const EPHEMERAL_KEY = tokenData.client_secret.value;
+
+      // Create a peer connection
+      const pc = new RTCPeerConnection();
+      peerConnectionRef.current = pc;
+
+      // Set up to play remote audio from the model
+      const audioElement = document.createElement('audio');
+      audioElement.autoplay = true;
+      audioElementRef.current = audioElement;
+      
+      pc.ontrack = (e) => {
+        audioElement.srcObject = e.streams[0];
+      };
+
+      // Add local audio track for microphone input
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+      
+      mediaStreamRef.current = mediaStream;
+      pc.addTrack(mediaStream.getTracks()[0]);
+
+      // Set up data channel for sending and receiving events
+      const dataChannel = pc.createDataChannel('oai-events');
+      dataChannelRef.current = dataChannel;
+
+      dataChannel.addEventListener('message', (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          handleRealtimeEvent(event);
+        } catch (error) {
+          console.error('Error parsing data channel message:', error);
+        }
+      });
+
+      // Start the session using the Session Description Protocol (SDP)
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const baseUrl = 'https://api.openai.com/v1/realtime';
+      const model = 'gpt-4o-realtime-preview-2024-12-17';
+      
+      const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+        method: 'POST',
+        body: offer.sdp,
+        headers: {
+          'Authorization': `Bearer ${EPHEMERAL_KEY}`,
+          'Content-Type': 'application/sdp',
+        },
+      });
+
+      if (!sdpResponse.ok) {
+        throw new Error(`SDP request failed: ${sdpResponse.status}`);
+      }
+
+      const answerSdp = await sdpResponse.text();
+      
+      const answer = {
+        type: 'answer' as RTCSdpType,
+        sdp: answerSdp,
+      };
+      
+      await pc.setRemoteDescription(answer);
+      
+      // Set session ready after connection is established
+      setTimeout(() => {
+        setIsSessionReady(true);
+      }, 1000);
+
     } catch (error) {
       console.error('Error starting call:', error);
       setIsCallActive(false);
@@ -563,21 +647,65 @@ Remember: You are speaking to Malaysian citizens who need government service hel
   };
 
   const endCall = () => {
+    // Close data channel
+    if (dataChannelRef.current) {
+      dataChannelRef.current.close();
+      dataChannelRef.current = null;
+    }
+
+    // Stop all media tracks
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      mediaStreamRef.current = null;
+    }
+
+    // Close peer connection
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.getSenders().forEach((sender) => {
+        if (sender.track) {
+          sender.track.stop();
+        }
+      });
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    // Clean up audio element
+    if (audioElementRef.current) {
+      audioElementRef.current.srcObject = null;
+      audioElementRef.current = null;
+    }
+
     setIsCallActive(false);
     setIsSessionReady(false);
     setCallDuration(0);
     setCallTranscript('');
-    
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
-    // Add mute/unmute logic for audio tracks
+    if (mediaStreamRef.current) {
+      const audioTrack = mediaStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
   };
+
+  // Call duration timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCallActive) {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCallActive]);
 
   const renderMarkdown = (content: string) => {
     return content
@@ -1300,72 +1428,75 @@ Remember: You are speaking to Malaysian citizens who need government service hel
       {/* Voice Call Modal */}
       {showPhoneModal && (
         <div className="fixed top-20 right-6 z-50">
-          <div className="backdrop-blur-xl rounded-xl p-6 w-80 shadow-2xl border border-white/30 relative"
+          <div className="backdrop-blur-xl rounded-2xl p-5 w-64 shadow-xl border border-white/20 relative"
             style={{
-              background: 'rgba(255,255,255,0.9)'
+              background: 'rgba(255,255,255,0.95)'
             }}>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                  <FaPhone className="text-white" size={16} />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <FaPhone className="text-white" size={12} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Government Services</h3>
-                  <p className="text-xs text-gray-500">Citizen Support Hotline</p>
+                  <h3 className="font-medium text-gray-900 text-sm">Government Services</h3>
+                  <p className="text-xs text-gray-500">Citizen Support</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowPhoneModal(false)}
-                className="text-gray-600 hover:text-gray-800 p-1"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
               >
-                <FaTimes size={14} />
+                <FaTimes size={12} />
               </button>
             </div>
             
             {!isCallActive ? (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Connect with a government services specialist for personalized assistance with your needs.
-                  </p>
-                  <button
-                    onClick={startCall}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    <FaPhone size={16} />
-                    Start Call
-                  </button>
-                </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-600 mb-4">
+                  Connect with an AI / Human Specialist for personalized assistance.
+                </p>
+                <button
+                  onClick={startCall}
+                  className="w-10 h-10 bg-white border border-transparent bg-clip-padding rounded-full transition-all duration-200 flex items-center justify-center mx-auto hover:scale-105 shadow-lg hover:shadow-xl text-green-600"
+                  style={{
+                    backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #10b981, #059669)',
+                    backgroundOrigin: 'border-box',
+                    backgroundClip: 'padding-box, border-box'
+                  }}
+                  title="Start Call"
+                >
+                  <FaPhone size={14} />
+                </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm">
+                  <div className="text-xs">
                     <div className="font-medium text-green-600">Connected</div>
                     <div className="text-gray-500">{Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}</div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <button
                       onClick={toggleMute}
-                      className={`p-2 rounded-full transition-colors ${
-                        isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                      className={`w-8 h-8 rounded-full transition-colors flex items-center justify-center ${
+                        isMuted ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
                       }`}
                     >
-                      {isMuted ? <FaMicrophoneSlash size={16} /> : <FaMicrophone size={16} />}
+                      {isMuted ? <FaMicrophoneSlash size={12} /> : <FaMicrophone size={12} />}
                     </button>
                     <button
                       onClick={endCall}
-                      className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                      className="w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex items-center justify-center"
                     >
-                      <FaPhoneSlash size={16} />
+                      <FaPhoneSlash size={12} />
                     </button>
                   </div>
                 </div>
                 
                 {callTranscript && (
-                  <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                  <div className="bg-gray-50 rounded-lg p-2 max-h-24 overflow-y-auto">
                     <div className="text-xs text-gray-600 mb-1">Live Transcript</div>
-                    <div className="text-sm">{callTranscript}</div>
+                    <div className="text-xs">{callTranscript}</div>
                   </div>
                 )}
               </div>
