@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from 'react';
-import { FaTimes, FaPlus, FaCheck } from 'react-icons/fa';
+import React, { useState, useRef, useEffect } from 'react';
+import { FaTimes, FaPlus, FaCheck, FaPhone, FaMicrophone, FaMicrophoneSlash, FaPhoneSlash } from 'react-icons/fa';
 
 interface CitizenProfile {
   name: string;
@@ -50,6 +50,7 @@ interface Document {
   extractedData?: any;
 }
 
+
 const AVAILABLE_SERVICES: Service[] = [
   { id: 'health_monitoring', name: 'Health Monitoring', category: 'Healthcare', description: 'Real-time health tracking' },
   { id: 'tax_filing', name: 'Tax Filing', category: 'Finance', description: 'Online tax submission' },
@@ -72,6 +73,7 @@ const AI_AGENTS: Agent[] = [
   { id: 'welfare', name: 'Welfare AI', specialty: 'Social Welfare', status: 'online' }
 ];
 
+
 const CitizenServicesInterface: React.FC = () => {
   const [showAddService, setShowAddService] = useState(false);
   const [showAddAgentModal, setShowAddAgentModal] = useState(false);
@@ -88,14 +90,44 @@ const CitizenServicesInterface: React.FC = () => {
     {
       id: '1',
       sender: 'agent',
-      content: '**Welcome to Citizen AI Assistant!**\\n\\nUse AI agent commands:\\n• @health - Healthcare services and medical support\\n• @tax - Tax filing and financial assistance\\n• @edu - Education grants and scholarships\\n• @housing - Housing loans and property services\\n• @legal - Legal aid and documentation\\n• @welfare - Social welfare and benefits\\n\\nHow can I help you with government services today?',
-      timestamp: '2:30 PM',
-      agentName: 'AI Assistant'
+      content: '**@health** - Book medical appointments, check health records, prescription refills\\n**@tax** - File taxes, check refund status, download forms\\n**@education** - Apply for scholarships, check exam results, course enrollment\\n**@housing** - Housing loans, property tax, rental assistance\\n**@legal** - Legal aid, document verification, court schedules\\n**@welfare** - Social assistance, disability support, senior care\\n\\n**Type @[agent] + your request** or upload documents for processing.',
+      timestamp: '9:15 AM',
+      agentName: 'Government AI Assistant'
+    },
+    {
+      id: '2',
+      sender: 'citizen',
+      content: '@health book appointment with cardiologist in KLCC, prefer Mandarin speaking doctor',
+      timestamp: '9:17 AM'
+    },
+    {
+      id: '3',
+      sender: 'agent',
+      content: '**Appointment Booked Successfully! 🏥**\\n\\n**Doctor:** Dr. Lim Wei Ming (Cardiologist)\\n**Language:** Mandarin & English\\n**Location:** Suria KLCC Medical Centre\\n**Date:** Tomorrow, 2:30 PM\\n**Reference:** APT-2024-HC-001234\\n\\n**What to bring:**\\n• MyKad\\n• Previous medical records\\n• Insurance card\\n\\n**Parking:** Level B2 validated for 3 hours\\n\\nAppointment reminder sent to your phone. Need to reschedule or have questions?',
+      timestamp: '9:18 AM',
+      agentName: 'Health AI'
     }
   ]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(AI_AGENTS[0]);
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
+  const [showDocumentDetails, setShowDocumentDetails] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  
+  // Call functionality states
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [callTranscript, setCallTranscript] = useState<string>('');
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  
+  // Refs for WebRTC
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const dataChannelRef = useRef<RTCDataChannel | null>(null);
 
   // Enhanced citizen profile
   const citizenProfile: CitizenProfile = {
@@ -196,7 +228,7 @@ const CitizenServicesInterface: React.FC = () => {
   ];
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || loading) return;
+    if (!newMessage.trim() || loading || isStreaming) return;
     
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -209,173 +241,228 @@ const CitizenServicesInterface: React.FC = () => {
     const currentInput = newMessage;
     setNewMessage('');
     setLoading(true);
+    setIsStreaming(true);
+    setStreamingMessage('');
     
     try {
-      setTimeout(() => {
-        let responseContent = '';
-        
-        // Enhanced doctor search and appointment booking
-        if (currentInput.toLowerCase().includes('find doctor') || currentInput.toLowerCase().includes('doctor for')) {
-          const input = currentInput.toLowerCase();
-          let specialty = 'general practitioner';
-          let language = 'English';
-          let location = 'Kuala Lumpur';
-          
-          // Extract specialty
-          if (input.includes('arm') || input.includes('injury') || input.includes('orthopedic')) specialty = 'Orthopedic Specialist';
-          if (input.includes('heart') || input.includes('cardiac')) specialty = 'Cardiologist';
-          if (input.includes('eye') || input.includes('vision')) specialty = 'Ophthalmologist';
-          if (input.includes('skin') || input.includes('dermatology')) specialty = 'Dermatologist';
-          
-          // Extract language
-          if (input.includes('chinese') || input.includes('mandarin')) language = 'Chinese/Mandarin';
-          if (input.includes('malay') || input.includes('bahasa')) language = 'Bahasa Malaysia';
-          if (input.includes('hokkien')) language = 'Hokkien';
-          if (input.includes('cantonese')) language = 'Cantonese';
-          if (input.includes('tamil')) language = 'Tamil';
-          
-          // Extract location
-          if (input.includes('klcc') || input.includes('city centre')) location = 'KLCC area';
-          if (input.includes('orchard') || input.includes('orchard road')) location = 'Orchard Road area';
-          if (input.includes('bangsar')) location = 'Bangsar area';
-          if (input.includes('mont kiara')) location = 'Mont Kiara area';
-          
-          responseContent = `**Found Doctors Near You**
+      // Call the chat API with streaming
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: `You are a helpful AI Assistant for MALAYSIAN CITIZENS using the Government Services Portal. You help citizens navigate government services with ease and confidence.
 
-**${specialty}** speaking **${language}** in **${location}**:
+CITIZEN-FOCUSED ASSISTANCE:
+- **Simple Language**: Explain complex government processes in easy-to-understand terms
+- **Step-by-Step Guidance**: Break down applications and procedures into clear, manageable steps
+- **Personal Support**: Address individual citizen concerns with empathy and patience
+- **Quick Solutions**: Provide immediate answers and direct citizens to the right services
+- **Accessibility**: Help citizens with disabilities, elderly, and those with language barriers
+- **Cost Information**: Always mention fees, payment methods, and any financial assistance available
 
-• **Dr. Ahmad Rahman** - Gleneagles Hospital
-  Languages: ${language}, English
-  Available: Tomorrow 2:00 PM
-  Rating: ⭐⭐⭐⭐⭐ (4.8/5)
+MALAYSIA GOVERNMENT SERVICES EXPERTISE:
+🏥 HEALTHCARE: MySejahtera, hospital appointments, specialist referrals, health insurance claims, medical certificates, vaccination records, mental health services, elderly care, disability support
+📚 EDUCATION: School enrollment, university applications, scholarships (JPA, MARA, state scholarships), student loans (PTPTN), skills training programs, adult education, special needs education
+🏠 HOUSING: PR1MA homes, affordable housing schemes, housing loans, property registration, rental assistance, squatter settlement programs, low-cost housing applications
+💰 FINANCE & TAX: Income tax filing (e-Filing), tax refunds, GST/SST matters, EPF withdrawals, SOCSO benefits, financial assistance programs (BR1M/STR), business licenses, SME support
+⚖️ LEGAL: Court procedures, legal aid, marriage/divorce certificates, birth/death certificates, name changes, citizenship applications, visa matters, consumer protection
+👥 WELFARE: Zakat assistance, JKM welfare aid, disability benefits, senior citizen support, child welfare services, domestic violence support, refugee assistance
+🚗 TRANSPORTATION: Driving licenses, vehicle registration, road tax, public transport, parking permits, traffic summons, accident reports
 
-• **Dr. Sarah Lim** - Prince Court Medical Centre
-  Languages: ${language}, English
-  Available: Today 4:30 PM
-  Rating: ⭐⭐⭐⭐⭐ (4.9/5)
+CITIZEN COMMUNICATION STYLE:
+- **Warm & Friendly**: Use encouraging language like "I'm here to help!" and "Let me guide you through this"
+- **Malaysian Context**: Use RM currency, local place names, and respectful terms (Encik, Puan, Datuk when appropriate)
+- **Clear Instructions**: Provide exact forms needed, office locations, and operating hours
+- **Practical Tips**: Include parking information, what to bring, best times to visit
+- **Multiple Options**: Always offer online, phone, and in-person alternatives
+- **Reassurance**: Acknowledge citizen concerns and provide confidence in the process
+- **Follow-up Support**: Ask "Do you need help with anything else?" and offer additional assistance
 
-• **Dr. Raj Patel** - Pantai Hospital
-  Languages: ${language}, English
-  Available: Monday 10:00 AM
-  Rating: ⭐⭐⭐⭐ (4.6/5)
+SPECIAL CAPABILITIES:
+- Handle multilingual requests (English, Bahasa Malaysia, Chinese, Tamil)
+- Provide location-specific information (different states, districts)
+- Understand cultural and religious considerations
+- Offer digital and physical service options
+- Help with urgent/emergency situations
 
-Would you like me to **book an appointment** with any of these doctors? Just say "book with Dr. [Name]" and I'll help you schedule it!`;
-          
-        } else if (currentInput.toLowerCase().includes('book appointment') || currentInput.toLowerCase().includes('book with dr')) {
-          const input = currentInput.toLowerCase();
-          let doctorName = 'Dr. Ahmad Rahman';
-          
-          if (input.includes('sarah') || input.includes('lim')) doctorName = 'Dr. Sarah Lim';
-          if (input.includes('raj') || input.includes('patel')) doctorName = 'Dr. Raj Patel';
-          
-          responseContent = `**Booking Appointment with ${doctorName}**
+Remember: You are here to serve Malaysian citizens with patience and care. Whether someone needs help finding the right office or navigating complex applications, treat every citizen with respect and provide the support they deserve. Make government services accessible and stress-free for everyone! 🇲🇾`
+            },
+            {
+              role: 'user',
+              content: currentInput
+            }
+          ],
+          stream: true
+        })
+      });
 
-✅ **Appointment Confirmed**
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
 
-📅 **Date**: Tomorrow, March 15th
-🕐 **Time**: 2:00 PM
-🏥 **Location**: Gleneagles Hospital KLCC
-💰 **Consultation Fee**: RM 180
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
 
-**What to bring:**
-• IC/Passport
-• Insurance card
-• Previous medical records (if any)
+      let fullResponse = '';
+      
+      // Add streaming message placeholder
+      const streamingMessageId = (Date.now() + 1).toString();
+      setMessages(prev => [...prev, {
+        id: streamingMessageId,
+        sender: 'agent',
+        content: '',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        agentName: 'AI Assistant'
+      }]);
 
-**Appointment Details:**
-• Consultation room: 3A-15
-• Parking: Level B2
-• Check-in: 30 minutes early
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-📱 **Reminder**: You'll receive SMS confirmation and reminder 24 hours before your appointment.
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
 
-Need to reschedule or have questions? Just let me know!`;
-          
-        } else if (currentInput.toLowerCase().includes('@health')) {
-          responseContent = `I'm your Healthcare AI assistant. I can help you with:
-• **Find doctors** by specialty, language & location
-• **Book appointments** instantly
-• Health monitoring via FaceHeart
-• Insurance claims
-• Emergency services
-
-Try: "Find a doctor for arm injury who speaks Chinese near KLCC" or "Book appointment with Dr. Sarah"`;
-          
-        } else if (currentInput.toLowerCase().includes('@tax')) {
-          responseContent = `I'm your Tax & Finance AI assistant. I can help you with:
-• Income tax filing
-• Tax refunds
-• Financial planning
-• Government benefits
-
-What tax or financial matter can I assist with?`;
-          
-        } else if (currentInput.toLowerCase().includes('@edu')) {
-          responseContent = `I'm your Education AI assistant. I can help you with:
-• Scholarship applications
-• Education grants
-• School enrollment
-• Student loans
-
-What educational service do you need?`;
-          
-        } else if (currentInput.toLowerCase().includes('@housing')) {
-          responseContent = `I'm your Housing AI assistant. I can help you with:
-• Housing loans
-• Property registration
-• Rental assistance
-• Housing schemes
-
-What housing service can I help with?`;
-          
-        } else if (currentInput.toLowerCase().includes('@legal')) {
-          responseContent = `I'm your Legal AI assistant. I can help you with:
-• Legal documentation
-• Court procedures
-• Legal aid applications
-• Notarization
-
-What legal matter do you need help with?`;
-          
-        } else if (currentInput.toLowerCase().includes('@welfare')) {
-          responseContent = `I'm your Social Welfare AI assistant. I can help you with:
-• Social benefits
-• Disability assistance
-• Senior citizen programs
-• Child welfare
-
-What welfare service do you need?`;
-          
-        } else {
-          responseContent = `I understand you need help with: "${currentInput}"
-
-I can assist you with various government services. Try using these commands:
-• @health - Healthcare services
-• @tax - Tax and finance
-• @edu - Education services
-• @housing - Housing assistance
-• @legal - Legal services
-• @welfare - Social welfare
-
-Which service would you like to explore?`;
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              if (content) {
+                fullResponse += content;
+                setStreamingMessage(fullResponse);
+                
+                // Update the streaming message in real-time
+                setMessages(prev => prev.map(msg => 
+                  msg.id === streamingMessageId 
+                    ? { ...msg, content: fullResponse }
+                    : msg
+                ));
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
         }
-        
-        const agentResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          sender: 'agent',
-          content: responseContent,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          agentName: 'AI Assistant'
-        };
-        
-        setMessages(prev => [...prev, agentResponse]);
-        setLoading(false);
-      }, 1000);
+      }
+
+      setLoading(false);
+      setIsStreaming(false);
+      setStreamingMessage('');
       
     } catch (error) {
       console.error('Error sending message:', error);
       setLoading(false);
+      setIsStreaming(false);
+      setStreamingMessage('');
+      
+      // Fallback to local responses for demo
+      const agentResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'agent',
+        content: generateFallbackResponse(currentInput),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        agentName: 'AI Assistant'
+      };
+      
+      setMessages(prev => [...prev, agentResponse]);
     }
+  };
+
+  const generateFallbackResponse = (input: string) => {
+    const lowerInput = input.toLowerCase();
+    
+    // Handle common government service requests
+    if (lowerInput.includes('door') || lowerInput.includes('where') || lowerInput.includes('location')) {
+      return `**Finding Your Way Around Government Offices**
+
+For **"where is the door?"** or location queries:
+• **Main entrance**: Usually facing the main road with clear signage
+• **Information counter**: Look for "Kaunter Pertanyaan" or "Information" 
+• **Service counters**: Different departments have numbered counters
+• **Disabled access**: Ramps and lifts available at all government buildings
+
+**Need specific directions?** Tell me:
+• Which government office you're visiting
+• What service you need
+• Your current location
+
+I can provide detailed directions and the exact counter/department you need! 🏛️`;
+    }
+    
+    if (lowerInput.includes('birth certificate') || lowerInput.includes('sijil kelahiran')) {
+      return `**Birth Certificate Application (Sijil Kelahiran)**
+
+**For Malaysian-born children:**
+• **Where**: JPN (Jabatan Pendaftaran Negara) office
+• **When**: Within 42 days of birth (free), after 42 days (RM 10 fee)
+• **Documents needed**: Hospital birth report, parents' IC, marriage certificate
+
+**Online application**: MyJPN portal
+**Processing time**: Same day (if complete documents)
+**Urgent cases**: Express service available (additional fee)
+
+**Need help with:**
+• Late registration procedures
+• Replacement certificates  
+• Name corrections
+• Adoption certificates
+
+What specific help do you need with birth certificates? 📋`;
+    }
+    
+    if (lowerInput.includes('passport') || lowerInput.includes('pasport')) {
+      return `**Malaysian Passport Services**
+
+**New Passport Application:**
+• **Adults (18+)**: RM 200 (5 years), RM 300 (10 years)
+• **Children**: RM 100 (2 years), RM 150 (5 years)
+• **Processing**: 7-10 working days
+
+**Required Documents:**
+• Birth certificate + IC
+• Completed application form (IMM.12)
+• Recent passport photos (2 copies)
+
+**Online Services:**
+• **Appointment booking**: MyOnline Passport
+• **Status checking**: Track application progress
+• **Renewal reminders**: 6 months before expiry
+
+**Urgent Travel?** Premium service available (1-2 days, additional RM 200)
+
+Need help with renewal, replacement, or name changes? 🛂`;
+    }
+    
+    // Default comprehensive response
+    return `**I'm here to help with your government service needs!**
+
+You asked: "*${input}*"
+
+**I can assist you with:**
+• **Healthcare**: Appointments, MySejahtera, insurance claims
+• **Documentation**: IC, passport, birth/death certificates  
+• **Housing**: PR1MA, affordable housing, property matters
+• **Finance**: Tax filing, EPF, SOCSO, business licenses
+• **Education**: School enrollment, scholarships, student loans
+• **Legal**: Court procedures, legal aid, marriage certificates
+• **Welfare**: Social assistance, disability support, senior care
+
+**Quick Help:**
+• **Urgent matters**: Tell me "urgent" + your issue
+• **Specific location**: Include your state/district
+• **Language preference**: I can help in English, Bahasa Malaysia, Chinese, Tamil
+
+**What specific government service do you need help with?** I'll provide step-by-step guidance! 🏛️✨`;
   };
 
   const addServiceToMyServices = (service: Service) => {
@@ -404,6 +491,94 @@ Which service would you like to explore?`;
     setShowAgentSkills(true);
   };
 
+  const showDocumentDetailsModal = (document: Document) => {
+    setSelectedDocument(document);
+    setShowDocumentDetails(true);
+  };
+
+  // Call functionality
+  const startCall = async () => {
+    try {
+      setIsCallActive(true);
+      setCallDuration(0);
+      setCallTranscript('');
+      
+      // Start call duration timer
+      const timer = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+      
+      // Initialize WebRTC connection for Realtime API
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      
+      peerConnectionRef.current = peerConnection;
+      
+      // Set up audio stream
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, stream);
+      });
+      
+      // Connect to OpenAI Realtime API
+      const response = await fetch('/api/openai-realtime', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'start_session',
+          instructions: `You are a helpful AI Assistant for MALAYSIAN CITIZENS calling the Government Services Hotline. You help citizens with government services using a warm, friendly voice.
+
+CITIZEN CALL SUPPORT:
+- Speak clearly and at a comfortable pace for citizens of all ages
+- Use simple language and explain processes step-by-step  
+- Be patient and understanding with citizen concerns
+- Provide specific information: office locations, forms needed, fees, operating hours
+- Offer multiple options: online, phone, or in-person services
+- Use Malaysian context: RM currency, local place names, respectful terms
+
+SERVICES TO HELP WITH:
+🏥 Healthcare: Appointments, MySejahtera, health records, insurance claims
+💰 Finance: Tax filing, EPF, SOCSO, refunds, business licenses  
+📚 Education: School enrollment, scholarships, student loans
+🏠 Housing: PR1MA applications, property matters, rental assistance
+⚖️ Legal: Court procedures, certificates, legal aid
+👥 Welfare: Social assistance, disability support, senior care
+
+Remember: You are speaking to Malaysian citizens who need government service help. Be warm, encouraging, and make them feel supported! 🇲🇾`
+        })
+      });
+      
+      if (response.ok) {
+        setIsSessionReady(true);
+        setCallTranscript('Connected to Government Services Assistant...');
+      }
+      
+    } catch (error) {
+      console.error('Error starting call:', error);
+      setIsCallActive(false);
+    }
+  };
+
+  const endCall = () => {
+    setIsCallActive(false);
+    setIsSessionReady(false);
+    setCallDuration(0);
+    setCallTranscript('');
+    
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    // Add mute/unmute logic for audio tracks
+  };
+
   const renderMarkdown = (content: string) => {
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -412,6 +587,26 @@ Which service would you like to explore?`;
 
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Citizen Services</h1>
+            <p className="text-gray-500 text-sm">Your personalized government services portal</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowPhoneModal(true)}
+              className="flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors text-green-600 hover:text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300"
+              title="Call Government Services"
+            >
+              <FaPhone size={14} className="mr-2" />
+              Call Support
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Row 1: My Details */}
       <div className="p-3 border-b border-gray-200">
         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
@@ -480,7 +675,11 @@ Which service would you like to explore?`;
                 (doc.extractedData && JSON.stringify(doc.extractedData).toLowerCase().includes(documentSearchQuery.toLowerCase()))
               )
               .map((doc) => (
-              <div key={doc.id} className="flex-shrink-0 w-52 p-2 bg-gray-50/50 border border-gray-100 rounded-lg hover:shadow-sm transition-all cursor-pointer">
+              <div 
+                key={doc.id} 
+                onClick={() => showDocumentDetailsModal(doc)}
+                className="flex-shrink-0 w-52 p-2 bg-gray-50/50 border border-gray-100 rounded-lg hover:shadow-sm transition-all cursor-pointer"
+              >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-gray-900 text-xs truncate">{doc.name}</h4>
@@ -582,6 +781,90 @@ Which service would you like to explore?`;
               <h2 className="text-base font-semibold text-gray-900">Citizen AI Assistant</h2>
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             </div>
+            
+            {/* Available Agents Row */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #dc2626, #ef4444)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Health</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #2563eb, #3b82f6)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Tax</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #f59e0b, #fbbf24)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Education</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #059669, #10b981)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Housing</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #7c3aed, #8b5cf6)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Legal</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
+                     style={{
+                       backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #ec4899, #f472b6)',
+                       backgroundOrigin: 'border-box',
+                       backgroundClip: 'padding-box, border-box'
+                     }}>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                </div>
+                <span className="text-xs font-medium text-gray-600">Welfare</span>
+              </div>
+              
+              {/* Add Agent Button */}
+              <button
+                onClick={() => setShowAddAgentModal(true)}
+                className="w-4 h-4 rounded-full bg-white border border-gray-300 hover:border-blue-400 flex items-center justify-center transition-colors hover:bg-blue-50"
+                title="Add Government Agent"
+              >
+                <span className="text-gray-400 hover:text-blue-600 text-xs font-bold">+</span>
+              </button>
+            </div>
           </div>
           
           {/* Messages */}
@@ -609,13 +892,16 @@ Which service would you like to explore?`;
                 </div>
               </div>
             ))}
-            {loading && (
+            {(loading || isStreaming) && (
               <div className="flex justify-start">
                 <div className="bg-gray-100 text-gray-900 p-2 rounded-lg text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <span className="text-xs text-gray-600 ml-2">
+                      {isStreaming ? 'AI is typing...' : 'Processing...'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -629,21 +915,21 @@ Which service would you like to explore?`;
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Ask about services, policies, procedures..."
+                placeholder="Ask anything: 'where is the door?', 'birth certificate', 'passport renewal', 'housing loan'..."
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter' && newMessage.trim() && !loading) {
+                  if (e.key === 'Enter' && newMessage.trim() && !loading && !isStreaming) {
                     handleSendMessage();
                   }
                 }}
-                disabled={loading}
+                disabled={loading || isStreaming}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={loading || !newMessage.trim()}
+                disabled={loading || isStreaming || !newMessage.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
-                Send
+                {isStreaming ? 'Streaming...' : 'Send'}
               </button>
             </div>
           </div>
@@ -669,57 +955,102 @@ Which service would you like to explore?`;
             
             <div className="p-6">
               <div className="space-y-4">
-                <div className="group relative p-5 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-2xl hover:shadow-xl hover:shadow-rose-500/20 hover:border-rose-200/50 transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                     onClick={addHealthcareService}>
-                  <div className="relative">
-                    <h4 className="font-semibold text-gray-900 text-base mb-2">FaceHeart Integration</h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Connect your FaceHeart device for continuous health monitoring, heart rate tracking, and AI-powered health insights.
+                <div className="text-center mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Complete Healthcare Package</h4>
+                  <p className="text-sm text-gray-600">Add all healthcare services to your citizen portal</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {/* FaceHeart Integration */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">FaceHeart Integration</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-rose-50/50 text-rose-600 border border-rose-100/50">
+                      Real-time Monitoring
+                    </div>
+                    <p className="text-xs text-gray-600 mb-2">
+                      Continuous health monitoring and AI insights.
                     </p>
                     <a 
                       href="https://hcs.faceheart.com/react/index.html" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
                     >
-                      Visit FaceHeart Portal →
+                      Visit Portal →
                     </a>
                   </div>
-                </div>
 
-                <div className="group relative p-5 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-2xl hover:shadow-xl hover:shadow-blue-500/20 hover:border-blue-200/50 transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                     onClick={addHealthcareService}>
-                  <div className="relative">
-                    <h4 className="font-semibold text-gray-900 text-base mb-2">LifeSignals Patch</h4>
-                    <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium mb-3 transition-all border bg-blue-50/50 text-blue-600 border-blue-100/50 group-hover:bg-blue-100/60 group-hover:text-blue-700 group-hover:border-blue-200/60">
-                      Wireless ECG & Vital Signs
+                  {/* LifeSignals Patch */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">LifeSignals Patch</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-blue-50/50 text-blue-600 border border-blue-100/50">
+                      ECG & Vital Signs
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Order LifeSignals wireless biosensor patches for multi-parameter monitoring including 2-channel ECG and vital signs.
+                    <p className="text-xs text-gray-600 mb-2">
+                      Wireless biosensor patches for ECG monitoring.
                     </p>
                     <a 
                       href="https://www.lifesignals.com" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 mb-4 transition-colors"
+                      className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 transition-colors"
                     >
                       Visit LifeSignals →
                     </a>
-                    <div className="space-y-2 text-xs text-gray-500">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        <span>2-channel ECG monitoring</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        <span>Wireless vital signs tracking</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                        <span>Disposable & cost-effective patches</span>
-                      </div>
-                    </div>
                   </div>
+
+                  {/* Book Appointment */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">Book Appointment</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-green-50/50 text-green-600 border border-green-100/50">
+                      Schedule Now
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Schedule medical consultations instantly.
+                    </p>
+                  </div>
+
+                  {/* Find Doctor */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">Find Doctor</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-purple-50/50 text-purple-600 border border-purple-100/50">
+                      Search & Filter
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Search doctors by specialty and location.
+                    </p>
+                  </div>
+
+                  {/* Health Records */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">Health Records</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-indigo-50/50 text-indigo-600 border border-indigo-100/50">
+                      Digital Access
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Access your complete medical history.
+                    </p>
+                  </div>
+
+                  {/* Emergency Services */}
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50/30 border border-gray-100 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 text-xs mb-1">Emergency Services</h4>
+                    <div className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium mb-2 bg-red-50/50 text-red-600 border border-red-100/50">
+                      24/7 Support
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Quick access to emergency medical services.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center mt-6 pt-4 border-t border-gray-100">
+                  <button 
+                    onClick={addHealthcareService}
+                    className="px-6 py-2 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-150 text-blue-700 hover:text-blue-800 text-sm rounded-full font-medium transition-all border border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md"
+                  >
+                    Add Healthcare Package
+                  </button>
                 </div>
               </div>
             </div>
@@ -754,7 +1085,18 @@ Which service would you like to explore?`;
                   >
                     <div className="relative">
                       <h4 className="font-semibold text-gray-900 text-sm mb-2">{service.name}</h4>
-                      <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium mb-3 bg-gray-100 text-gray-700">
+                      <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium mb-3 transition-all border ${
+                        service.category === 'Healthcare' ? 'bg-rose-50/30 text-rose-500 border-rose-200/40 group-hover:bg-rose-50/50 group-hover:text-rose-600 group-hover:border-rose-300/50 group-hover:shadow-rose-100/20 group-hover:shadow-sm' :
+                        service.category === 'Finance' ? 'bg-emerald-50/30 text-emerald-500 border-emerald-200/40 group-hover:bg-emerald-50/50 group-hover:text-emerald-600 group-hover:border-emerald-300/50 group-hover:shadow-emerald-100/20 group-hover:shadow-sm' :
+                        service.category === 'Education' ? 'bg-amber-50/30 text-amber-500 border-amber-200/40 group-hover:bg-amber-50/50 group-hover:text-amber-600 group-hover:border-amber-300/50 group-hover:shadow-amber-100/20 group-hover:shadow-sm' :
+                        service.category === 'Housing' ? 'bg-violet-50/30 text-violet-500 border-violet-200/40 group-hover:bg-violet-50/50 group-hover:text-violet-600 group-hover:border-violet-300/50 group-hover:shadow-violet-100/20 group-hover:shadow-sm' :
+                        service.category === 'Business' ? 'bg-cyan-50/30 text-cyan-500 border-cyan-200/40 group-hover:bg-cyan-50/50 group-hover:text-cyan-600 group-hover:border-cyan-300/50 group-hover:shadow-cyan-100/20 group-hover:shadow-sm' :
+                        service.category === 'Welfare' ? 'bg-pink-50/30 text-pink-500 border-pink-200/40 group-hover:bg-pink-50/50 group-hover:text-pink-600 group-hover:border-pink-300/50 group-hover:shadow-pink-100/20 group-hover:shadow-sm' :
+                        service.category === 'Legal' ? 'bg-indigo-50/30 text-indigo-500 border-indigo-200/40 group-hover:bg-indigo-50/50 group-hover:text-indigo-600 group-hover:border-indigo-300/50 group-hover:shadow-indigo-100/20 group-hover:shadow-sm' :
+                        service.category === 'Career' ? 'bg-teal-50/30 text-teal-500 border-teal-200/40 group-hover:bg-teal-50/50 group-hover:text-teal-600 group-hover:border-teal-300/50 group-hover:shadow-teal-100/20 group-hover:shadow-sm' :
+                        service.category === 'Family' ? 'bg-orange-50/30 text-orange-500 border-orange-200/40 group-hover:bg-orange-50/50 group-hover:text-orange-600 group-hover:border-orange-300/50 group-hover:shadow-orange-100/20 group-hover:shadow-sm' :
+                        'bg-slate-50/30 text-slate-500 border-slate-200/40 group-hover:bg-slate-50/50 group-hover:text-slate-600 group-hover:border-slate-300/50 group-hover:shadow-slate-100/20 group-hover:shadow-sm'
+                      }`}>
                         {service.category}
                       </div>
                       <p className="text-xs text-gray-600">{service.description}</p>
@@ -809,6 +1151,225 @@ Which service would you like to explore?`;
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Details Modal */}
+      {showDocumentDetails && selectedDocument && (
+        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto border border-gray-100/50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-50">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">{selectedDocument.name}</h3>
+                <p className="text-sm text-gray-500">{selectedDocument.type} • {selectedDocument.uploadDate}</p>
+              </div>
+              <button
+                onClick={() => setShowDocumentDetails(false)}
+                className="w-10 h-10 rounded-full hover:bg-gray-50 flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <FaTimes className="text-gray-400 hover:text-gray-600" size={16} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-gray-900">Extracted Information</h4>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
+                    <FaCheck className="text-green-600" size={10} />
+                  </div>
+                  <span className="text-sm text-green-600 font-medium">Processed</span>
+                </div>
+              </div>
+              
+              {selectedDocument.extractedData && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(selectedDocument.extractedData).map(([key, value]) => (
+                    <div key={key} className="p-4 bg-gray-50/50 border border-gray-100 rounded-xl">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </label>
+                        <span className="text-sm font-medium text-gray-900">
+                          {String(value)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Document ID: {selectedDocument.id}</span>
+                  <span>Status: {selectedDocument.status}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Agent Modal */}
+      {showAddAgentModal && (
+        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 border border-gray-100/50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-50">
+              <h3 className="text-xl font-semibold text-gray-900">Add Government Agent</h3>
+              <button
+                onClick={() => setShowAddAgentModal(false)}
+                className="w-10 h-10 rounded-full hover:bg-gray-50 flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <FaTimes className="text-gray-400 hover:text-gray-600" size={16} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Add Government Agents</h4>
+                <p className="text-sm text-gray-600">Expand your service access with specialized agents</p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="group p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-sm">IM</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-0.5">Immigration Services</h4>
+                        <p className="text-xs text-gray-500">Passport • Visa • Citizenship</p>
+                      </div>
+                    </div>
+                    <button className="px-4 py-1.5 bg-white border border-blue-200 text-blue-600 text-xs font-medium rounded-full hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 group-hover:shadow-sm">
+                      Add Agent
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="group p-4 bg-white border border-gray-100 rounded-2xl hover:border-green-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-50 to-green-100 border border-green-200 flex items-center justify-center">
+                        <span className="text-green-600 font-semibold text-sm">TR</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-0.5">Transport Services</h4>
+                        <p className="text-xs text-gray-500">License • Registration • Road Tax</p>
+                      </div>
+                    </div>
+                    <button className="px-4 py-1.5 bg-white border border-green-200 text-green-600 text-xs font-medium rounded-full hover:bg-green-50 hover:border-green-300 transition-all duration-200 group-hover:shadow-sm">
+                      Add Agent
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="group p-4 bg-white border border-gray-100 rounded-2xl hover:border-purple-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 flex items-center justify-center">
+                        <span className="text-purple-600 font-semibold text-sm">BZ</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-0.5">Business Services</h4>
+                        <p className="text-xs text-gray-500">Registration • Permits • Licenses</p>
+                      </div>
+                    </div>
+                    <button className="px-4 py-1.5 bg-white border border-purple-200 text-purple-600 text-xs font-medium rounded-full hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 group-hover:shadow-sm">
+                      Add Agent
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setShowAddAgentModal(false)}
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Call Modal */}
+      {showPhoneModal && (
+        <div className="fixed top-20 right-6 z-50">
+          <div className="backdrop-blur-xl rounded-xl p-6 w-80 shadow-2xl border border-white/30 relative"
+            style={{
+              background: 'rgba(255,255,255,0.9)'
+            }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                  <FaPhone className="text-white" size={16} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Government Services</h3>
+                  <p className="text-xs text-gray-500">Citizen Support Hotline</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPhoneModal(false)}
+                className="text-gray-600 hover:text-gray-800 p-1"
+              >
+                <FaTimes size={14} />
+              </button>
+            </div>
+            
+            {!isCallActive ? (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Connect with a government services specialist for personalized assistance with your needs.
+                  </p>
+                  <button
+                    onClick={startCall}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <FaPhone size={16} />
+                    Start Call
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <div className="font-medium text-green-600">Connected</div>
+                    <div className="text-gray-500">{Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={toggleMute}
+                      className={`p-2 rounded-full transition-colors ${
+                        isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {isMuted ? <FaMicrophoneSlash size={16} /> : <FaMicrophone size={16} />}
+                    </button>
+                    <button
+                      onClick={endCall}
+                      className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                    >
+                      <FaPhoneSlash size={16} />
+                    </button>
+                  </div>
+                </div>
+                
+                {callTranscript && (
+                  <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <div className="text-xs text-gray-600 mb-1">Live Transcript</div>
+                    <div className="text-sm">{callTranscript}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

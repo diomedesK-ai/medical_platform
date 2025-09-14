@@ -30,8 +30,6 @@ import ContactCenterDashboard from '@/components/ContactCenterDashboard';
 import ExperienceSelector from '@/components/ExperienceSelector';
 import WealthAdvisorInterface from '@/components/WealthAdvisorInterface';
 import BancassuranceInterface from '@/components/BancassuranceInterface';
-import GovernmentServicesInterface from '@/components/GovernmentServicesInterface';
-import HealthPortalInterface from '@/components/HealthPortalInterface';
 import CitizenServicesInterface from '@/components/CitizenServicesInterface';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { getWealthAdvisorPrompt } from '@/utils/wealthAdvisorScenarios';
@@ -55,8 +53,6 @@ interface Conversation {
 
 const NAV_ITEMS = [
   { icon: <FaPhone size={20} />, label: 'Citizen Center', key: 'contact', active: true },
-  { icon: <FaUniversity size={20} />, label: 'Government Services', key: 'government', active: false },
-  { icon: <FaRegComments size={20} />, label: 'Health Portal', key: 'health', active: false },
   { icon: <FaGlobe size={20} />, label: 'Citizen Services', key: 'citizen', active: false },
   { icon: <FaBell size={20} />, label: 'Alerts & Notifications', key: 'alerts', active: false },
   { icon: <FaArchive size={20} />, label: 'Knowledge Base', key: 'knowledge', active: false },
@@ -66,73 +62,73 @@ const NAV_ITEMS = [
 const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: '1',
-    name: 'AI Government Assistant',
-    lastMessage: 'Citizen satisfaction analysis complete. 96% satisfaction rate this quarter. Key insights: Service resolution improved by 18%, citizen wait times decreased by 31%, and overall service rating increased to 4.9/5.',
+    name: 'Immigration Department',
+    lastMessage: 'Your passport renewal application (REF: IMM-2024-001234) has been approved. Please collect your new passport from Putrajaya Immigration Office within 30 days. Bring original MyKad and collection receipt.',
     timestamp: '2 min ago',
-    avatar: 'AI',
+    avatar: 'ID',
     unread: 2,
     isOnline: true
   },
   {
     id: '2',
-    name: 'Health Services Team',
-    lastMessage: 'Emergency alert from Kuala Lumpur Hospital - requires immediate attention. Critical patient overflow situation. Priority level: High. Estimated impact: 200+ citizens affected.',
+    name: 'Ministry of Health',
+    lastMessage: 'Health screening appointment confirmation for Ahmad Bin Abdullah. Date: Tomorrow 10:30 AM at Klinik Kesihatan Bangsar. Please bring MyKad, previous medical records, and arrive 15 minutes early.',
     timestamp: '8 min ago',
-    avatar: 'HS',
+    avatar: 'MH',
     unread: 3,
     isOnline: true
   },
   {
     id: '3',
-    name: 'Operations Manager',
-    lastMessage: 'Service metrics updated - 99.5% uptime achieved this month. Government portal performance excellent across all states. Database response times improved by 20%. Next maintenance: Sunday 2AM-4AM.',
+    name: 'Inland Revenue Board',
+    lastMessage: 'Tax refund processed successfully! RM 2,450 will be credited to your Maybank account (****1234) within 3-5 working days. E-filing for 2024 opens January 1st. Reference: TAX-REF-2024-5678.',
     timestamp: '15 min ago',
-    avatar: 'OM',
+    avatar: 'IRB',
     unread: 0,
     isOnline: true
   },
   {
     id: '4',
-    name: 'Legal & Compliance',
-    lastMessage: 'Regulatory review completed. All systems compliant with Malaysian Data Protection Act, PDPA, and government security standards. Security audit passed with zero critical findings.',
+    name: 'Ministry of Education',
+    lastMessage: 'Scholarship application update: Your Excellence Program application is under final review. Interview scheduled for next Monday 2:00 PM at MOE Putrajaya. Prepare academic transcripts and recommendation letters.',
     timestamp: '32 min ago',
-    avatar: 'LC',
+    avatar: 'MOE',
     unread: 1,
     isOnline: false
   },
   {
     id: '5',
-    name: 'Digital Services Team',
-    lastMessage: 'New MySejahtera integration successful! Citizen adoption rate at 92% within first week. Performance metrics show 25% improvement in health service delivery. Ready for nationwide rollout.',
+    name: 'EPF (Employees Provident Fund)',
+    lastMessage: 'Account balance update: Current EPF balance RM 85,450. Recent contribution: RM 850 (December 2024). Withdrawal application for housing approved. Funds will be transferred within 7 working days.',
     timestamp: '1 hour ago',
-    avatar: 'DS',
+    avatar: 'EPF',
     unread: 0,
     isOnline: true
   },
   {
     id: '6',
-    name: 'Technical Support',
-    lastMessage: 'Network optimization complete - 15% performance improvement across all endpoints. Latency reduced from 45ms to 38ms average. CDN cache hit ratio improved to 94%. User experience metrics showing positive trends.',
+    name: 'Road Transport Department',
+    lastMessage: 'Driving license renewal reminder: Your license expires on 31st March 2025. Renew online via MyEG or visit any JPJ office. Required: MyKad, current license, medical certificate (if over 60), and RM 30 fee.',
     timestamp: '2 hours ago',
-    avatar: 'TS',
+    avatar: 'RTD',
     unread: 0,
     isOnline: false
   },
   {
     id: '7',
-    name: 'Data Analytics',
-    lastMessage: 'Customer behavior insights ready for executive review. Key findings: Mobile usage up 34%, feature adoption rate 67%, churn prediction model accuracy 89%. Recommendations include enhanced mobile UX and personalized onboarding.',
+    name: 'Housing Development Board',
+    lastMessage: 'PR1MA housing application approved! Unit 15-08, Residensi Wilayah, KL. Booking fee: RM 1,000 due within 14 days. Loan pre-approval letter from bank required. Contact officer: Puan Siti (03-2345-6789).',
     timestamp: '3 hours ago',
-    avatar: 'DA',
+    avatar: 'HDB',
     unread: 2,
     isOnline: true
   },
   {
     id: '8',
-    name: 'Product Team',
-    lastMessage: 'New feature rollout successful - 98% adoption rate within first week. User feedback overwhelmingly positive (4.8/5 rating). Performance metrics stable. Planning phase 2 enhancements based on user suggestions.',
+    name: 'Social Welfare Department',
+    lastMessage: 'Bantuan Rakyat 1Malaysia (BR1M) payment processed. RM 1,200 credited to your account. Next payment: March 2025. Update family income details if changed. Visit JKM office or use online portal.',
     timestamp: '4 hours ago',
-    avatar: 'PT',
+    avatar: 'SWD',
     unread: 0,
     isOnline: true
   }
@@ -2366,12 +2362,6 @@ ${customPrompt}`,
           {currentView === 'contact' ? (
             /* Citizen Center Dashboard */
             <ContactCenterDashboard />
-          ) : currentView === 'government' ? (
-            /* Government Services Interface */
-            <GovernmentServicesInterface />
-          ) : currentView === 'health' ? (
-            /* Health Portal Interface */
-            <HealthPortalInterface />
           ) : currentView === 'citizen' ? (
             /* Citizen Services */
             <CitizenServicesInterface />
