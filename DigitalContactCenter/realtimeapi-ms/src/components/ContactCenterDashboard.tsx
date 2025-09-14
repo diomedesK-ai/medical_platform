@@ -1217,8 +1217,15 @@ Please provide a helpful response for the contact center agent.`,
                       </div>
                     )}
                     {activity.status === 'completed' && (
-                      <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                        ✓
+                      <div className="w-4 h-4 bg-white border border-transparent bg-clip-padding rounded-full flex items-center justify-center"
+                           style={{
+                             backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #10b981, #059669)',
+                             backgroundOrigin: 'border-box',
+                             backgroundClip: 'padding-box, border-box'
+                           }}>
+                        <svg className="w-2.5 h-2.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
                       </div>
                     )}
                   </div>
@@ -1239,7 +1246,7 @@ Please provide a helpful response for the contact center agent.`,
                 <div className="text-sm text-gray-500 mt-1">Pending reviews</div>
                 <div className="flex items-center gap-2 mt-3">
                   {pendingApprovals > 0 && (
-                    <div className="px-3 py-1 bg-amber-500 text-white text-xs font-medium rounded-full">
+                    <div className="px-3 py-1 bg-white border border-amber-300 text-amber-600 text-xs font-medium rounded-full">
                       {pendingApprovals} Pending
                     </div>
                   )}
@@ -1254,8 +1261,8 @@ Please provide a helpful response for the contact center agent.`,
                 <div className="text-sm text-gray-500 mt-1">Processing analytics</div>
                 <div className="flex items-center gap-2 mt-3">
                   <div className="text-xs text-blue-600">78.5% automation rate • 1,245 documents</div>
-                  <div className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                    Review Exceptions
+                  <div className="px-3 py-1 bg-white border border-red-300 text-red-600 text-xs font-medium rounded-full">
+                    Review
                   </div>
                 </div>
               </button>
