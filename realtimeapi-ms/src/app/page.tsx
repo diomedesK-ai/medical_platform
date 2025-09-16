@@ -32,6 +32,7 @@ import WealthAdvisorInterface from '@/components/WealthAdvisorInterface';
 import BancassuranceInterface from '@/components/BancassuranceInterface';
 import CitizenServicesInterface from '@/components/CitizenServicesInterface';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import SplashScreen from '@/components/SplashScreen';
 import { getWealthAdvisorPrompt } from '@/utils/wealthAdvisorScenarios';
 
 // Message type for ChatWindow
@@ -52,7 +53,7 @@ interface Conversation {
 }
 
 const NAV_ITEMS = [
-  { icon: <FaPhone size={20} />, label: 'Citizen Center', key: 'contact', active: true },
+  { icon: <FaPhone size={20} />, label: 'Government Control Tower', key: 'contact', active: true },
   { icon: <FaGlobe size={20} />, label: 'Citizen Services', key: 'citizen', active: false },
   { icon: <FaBell size={20} />, label: 'Alerts & Notifications', key: 'alerts', active: false },
   { icon: <FaArchive size={20} />, label: 'Knowledge Base', key: 'knowledge', active: false },
@@ -170,6 +171,13 @@ function HomeContent() {
     };
   }, []);
 
+  const [showSplash, setShowSplash] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setShowSplash(true);
+  }, []);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [listening, setListening] = useState(false);
@@ -197,7 +205,7 @@ function HomeContent() {
     const view = searchParams.get('view');
     if (view === 'contact') {
       setCurrentView('contact');
-      setSelectedNav(0); // Citizen Center nav item
+      setSelectedNav(0); // Government Control Tower nav item
     } else if (view === 'government') {
       setCurrentView('government');
       setSelectedNav(1); // Government Services nav item
@@ -218,7 +226,7 @@ function HomeContent() {
       setSelectedNav(6); // Settings nav item
     } else {
       setCurrentView('contact');
-      setSelectedNav(0); // Default to Citizen Center
+      setSelectedNav(0); // Default to Government Control Tower
     }
   }, [searchParams]);
 
@@ -2188,12 +2196,18 @@ ${customPrompt}`,
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative" style={{
-        backgroundImage: `url(${wallpapers[currentWallpaperIndex]?.path || '/purple-gradient-bg.jpg'})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}>
+    <>
+      {/* Splash Screen */}
+      {isMounted && showSplash && (
+        <SplashScreen onClose={() => setShowSplash(false)} />
+      )}
+      
+      <div className="min-h-screen flex items-center justify-center p-4 relative" style={{
+          backgroundImage: `url(${wallpapers[currentWallpaperIndex]?.path || '/purple-gradient-bg.jpg'})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}>
       {/* Wallpaper Changer Button */}
       <button
         onClick={changeWallpaper}
@@ -2245,7 +2259,11 @@ ${customPrompt}`,
 
           {/* User Profile */}
           <div className="p-4 border-t border-gray-800">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-900">
+            <div 
+              className="flex items-center gap-3 p-3 rounded-xl bg-gray-900 cursor-pointer hover:bg-gray-800 transition-colors duration-200"
+              onClick={() => setShowSplash(true)}
+              title="Click to view Omni-Government Experience"
+            >
               <div className="w-10 h-10 rounded-full bg-white border-2 border-transparent bg-clip-padding flex items-center justify-center text-gray-700 font-semibold relative">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 p-0.5">
                   <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
@@ -2360,7 +2378,7 @@ ${customPrompt}`,
         {/* Column 3: Chat Area, Knowledge Base, or Settings */}
         <main className="flex-1 flex flex-col bg-white">
           {currentView === 'contact' ? (
-            /* Citizen Center Dashboard */
+            /* Government Control Tower Dashboard */
             <ContactCenterDashboard />
           ) : currentView === 'citizen' ? (
             /* Citizen Services */
@@ -3108,6 +3126,7 @@ ${customPrompt}`,
         </div>
       )}
     </div>
+    </>
   );
 }
 

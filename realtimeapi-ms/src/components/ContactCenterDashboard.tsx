@@ -159,11 +159,11 @@ const AgentCard: React.FC<AgentCardProps> = ({ name, status, callsHandled, avgCa
 };
 
 const ContactCenterDashboard: React.FC = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: '**Welcome to Government Agent Assistant!**\n\nUse agent commands:\n• @health - Health services and medical support\n• @edu - Education grants and scholarships\n• @welfare - Social welfare and housing assistance\n• @legal - Legal aid and documentation\n\nHow can I help with government services today?', timestamp: '2:30 PM' }
+    { role: 'assistant', content: '**Welcome to Government Guru!**\n\nUse agent commands:\n• @health - Health services and medical support\n• @edu - Education grants and scholarships\n• @welfare - Social welfare and housing assistance\n• @legal - Legal aid and documentation\n\nHow can I help with government services today?', timestamp: '2:30 PM' }
   ]);
   const [loading, setLoading] = useState(false);
   const [showAddAgentModal, setShowAddAgentModal] = useState(false);
@@ -441,7 +441,7 @@ const ContactCenterDashboard: React.FC = () => {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   
-  // Enhanced Citizen Center prompt with web search and knowledge base
+  // Enhanced Government Control Tower prompt with web search and knowledge base
   const [customPrompt] = useState(`You are an AI Assistant for Malaysia Government Contact Center EMPLOYEES and SERVICE OFFICERS. You provide operational support to help staff serve citizens effectively.
 
 EMPLOYEE SUPPORT FUNCTIONS:
@@ -482,6 +482,9 @@ RESPONSE STRATEGY:
 Be professional, respectful, and helpful. Always prioritize accuracy and provide actionable information for government service officers serving Malaysian citizens. Use appropriate Malaysian honorifics (Datuk, Tan Sri, Encik, Puan, etc.) when relevant.`);
 
   useEffect(() => {
+    // Initialize current time on client side only
+    setCurrentTime(new Date());
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -1142,13 +1145,13 @@ Please provide a helpful response for the contact center agent.`,
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Citizen Center</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Government Control Tower</h1>
             <p className="text-gray-500 text-sm">Real-time citizen services monitoring and analytics</p>
           </div>
                     <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-gray-400">Current Time</p>
-              <p className="text-sm font-medium text-gray-900">{currentTime.toLocaleTimeString()}</p>
+              <p className="text-sm font-medium text-gray-900">{currentTime?.toLocaleTimeString() || '--:--:--'}</p>
             </div>
             <button
               onClick={() => setShowPhoneModal(true)}
@@ -1319,7 +1322,7 @@ Please provide a helpful response for the contact center agent.`,
           </div>
         </div>
 
-        {/* Government Agent Assistant */}
+        {/* Government Guru */}
         <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 w-full">
           <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
@@ -1332,7 +1335,7 @@ Please provide a helpful response for the contact center agent.`,
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Government Agent Assistant</h3>
+                  <h3 className="font-semibold text-gray-900">Government Guru</h3>
                   <div className="text-sm text-green-600 flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     Online • Use @health, @edu, @welfare, or @legal
