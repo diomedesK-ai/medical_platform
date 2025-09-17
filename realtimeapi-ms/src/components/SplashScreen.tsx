@@ -16,6 +16,37 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
           0% { transform: scale(1); opacity: 0.3; }
           100% { transform: scale(1.2); opacity: 0.8; }
         }
+        .glow-pill {
+          box-shadow: 0 0 24px rgba(168, 85, 247, 0.55), 0 0 60px rgba(168, 85, 247, 0.4);
+        }
+        .glow-text {
+          text-shadow: 0 0 14px rgba(192, 132, 252, 0.95), 0 0 30px rgba(168, 85, 247, 0.7);
+        }
+        .glow-button {
+          box-shadow: 0 0 24px rgba(147, 51, 234, 0.5), 0 0 44px rgba(236, 72, 153, 0.4);
+          text-shadow: 0 0 10px rgba(147, 51, 234, 0.45);
+          transition: box-shadow 0.3s ease, transform 0.3s ease, color 0.3s ease;
+        }
+        .glow-button:hover {
+          box-shadow: 0 0 36px rgba(236, 72, 153, 0.6), 0 0 64px rgba(147, 51, 234, 0.55);
+          transform: translateY(-1px) scale(1.03);
+          color: #fff;
+        }
+        .pill-transparent {
+          background: rgba(168, 85, 247, 0.10);
+          border-color: rgba(216, 180, 254, 0.45);
+        }
+        .button-soft {
+          background: rgba(255, 255, 255, 0.10);
+          border-color: rgba(255, 255, 255, 0.28);
+          color: #ffffff;
+          backdrop-filter: blur(8px);
+        }
+        .button-soft:hover {
+          background: rgba(255, 255, 255, 0.16);
+          border-color: rgba(255, 255, 255, 0.38);
+          color: #ffffff;
+        }
       `}</style>
       <div className="fixed inset-0 flex items-center justify-center z-50">
       {/* Tablet-only overlay */}
@@ -23,24 +54,25 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
         <div className="w-full max-w-[2226px] h-[90vh] rounded-3xl bg-black/85 backdrop-blur-md"></div>
       </div>
 
-      {/* Pulsing Border Effect - Positioned to the right */}
-      <div className="absolute inset-0 flex items-center justify-end pr-32 pointer-events-none z-5">
-        <div className="opacity-80">
-          <PulsingBorderShader />
-        </div>
-      </div>
+      {/* Pulsing Border Effect moved inside tablet container to avoid drifting on resize */}
       
       {/* Splash content - Left aligned in tablet */}
       <div className="relative z-10 w-full max-w-[2226px] h-[90vh] flex flex-col justify-center px-16 text-left">
+        {/* Circle shader anchored to tablet bounds */}
+        <div className="absolute inset-y-0 right-16 flex items-center pointer-events-none z-0">
+          <div className="opacity-80">
+            <PulsingBorderShader />
+          </div>
+        </div>
         <div className="max-w-5xl space-y-12">
           {/* Top Badge */}
-          <div className="inline-flex items-center gap-3 px-8 py-4 bg-purple-600/20 backdrop-blur-sm rounded-full border border-purple-400/30">
+          <div className="inline-flex items-center gap-3 px-8 py-4 backdrop-blur-sm rounded-full border glow-pill pill-transparent">
             <div className="w-6 h-6 text-purple-300">
               <svg fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
             </div>
-            <span className="text-purple-200 font-semibold text-lg">AI-Powered Government Platform</span>
+            <span className="text-purple-200 font-semibold text-lg glow-text">AI-Powered Government Platform</span>
           </div>
 
           {/* Main Headline */}
@@ -65,11 +97,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
               </svg>
             </button>
             
-            <button className="px-8 py-4 bg-transparent border-2 border-gray-600 text-gray-300 text-lg font-semibold rounded-full hover:border-gray-500 hover:text-white transition-all duration-300">
+            <button className="px-8 py-4 border-2 text-lg font-semibold rounded-full transition-all duration-300 glow-button button-soft">
               Digital Concierge
             </button>
             
-            <button className="px-8 py-4 bg-transparent border-2 border-gray-600 text-gray-300 text-lg font-semibold rounded-full hover:border-gray-500 hover:text-white transition-all duration-300">
+            <button className="px-8 py-4 border-2 text-lg font-semibold rounded-full transition-all duration-300 glow-button button-soft">
               Digital Workforce
             </button>
           </div>
