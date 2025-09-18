@@ -198,7 +198,7 @@ function HomeContent() {
   // URL routing for navigation
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [currentView, setCurrentView] = useState<'contact' | 'government' | 'health' | 'citizen' | 'bancassurance' | 'knowledge' | 'settings'>('contact');
+  const [currentView, setCurrentView] = useState<'contact' | 'government' | 'health' | 'citizen' | 'bancassurance' | 'knowledge' | 'settings' | 'alerts'>('contact');
 
   // Handle URL-based navigation
   useEffect(() => {

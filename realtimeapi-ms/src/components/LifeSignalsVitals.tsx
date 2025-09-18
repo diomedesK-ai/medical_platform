@@ -35,7 +35,7 @@ const LifeSignalsVitals: React.FC<LifeSignalsVitalsProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef2 = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -101,42 +101,6 @@ const LifeSignalsVitals: React.FC<LifeSignalsVitalsProps> = ({ onClose }) => {
     });
   };
 
-  // Proper ECG heartbeat function
-  const generateECGPoint = (time: number) => {
-    const beatsPerSecond = heartRate / 60;
-    const beatTime = time * beatsPerSecond;
-    const cycle = beatTime % 1; // 0 to 1 for each heartbeat
-    
-    let amplitude = 0;
-    
-    // Classic ECG pattern: mostly flat with sharp heartbeat spikes
-    if (cycle >= 0.2 && cycle <= 0.25) {
-      // Sharp QRS spike (main heartbeat) - very narrow and tall
-      const spikePos = (cycle - 0.2) / 0.05; // 0 to 1 over the spike
-      if (spikePos < 0.3) {
-        // Q wave (small dip)
-        amplitude = -0.2;
-      } else if (spikePos < 0.7) {
-        // R wave (tall spike)
-        amplitude = 1.8;
-      } else {
-        // S wave (small dip)
-        amplitude = -0.4;
-      }
-    } else if (cycle >= 0.05 && cycle <= 0.12) {
-      // Small P wave
-      amplitude = 0.15;
-    } else if (cycle >= 0.35 && cycle <= 0.5) {
-      // T wave
-      amplitude = 0.25;
-    } else {
-      // Flat baseline (most of the time)
-      amplitude = 0;
-    }
-    
-    return amplitude;
-  };
-
   // Vital signs simulation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -169,7 +133,43 @@ const LifeSignalsVitals: React.FC<LifeSignalsVitalsProps> = ({ onClose }) => {
     if (!ctx) return;
 
     let time = 0;
-    let scrollOffset = 0;
+    const scrollOffset = 0;
+
+    // Proper ECG heartbeat function
+    const generateECGPoint = (time: number) => {
+      const beatsPerSecond = heartRate / 60;
+      const beatTime = time * beatsPerSecond;
+      const cycle = beatTime % 1; // 0 to 1 for each heartbeat
+      
+      let amplitude = 0;
+      
+      // Classic ECG pattern: mostly flat with sharp heartbeat spikes
+      if (cycle >= 0.2 && cycle <= 0.25) {
+        // Sharp QRS spike (main heartbeat) - very narrow and tall
+        const spikePos = (cycle - 0.2) / 0.05; // 0 to 1 over the spike
+        if (spikePos < 0.3) {
+          // Q wave (small dip)
+          amplitude = -0.2;
+        } else if (spikePos < 0.7) {
+          // R wave (tall spike)
+          amplitude = 1.8;
+        } else {
+          // S wave (small dip)
+          amplitude = -0.4;
+        }
+      } else if (cycle >= 0.05 && cycle <= 0.12) {
+        // Small P wave
+        amplitude = 0.15;
+      } else if (cycle >= 0.35 && cycle <= 0.5) {
+        // T wave
+        amplitude = 0.25;
+      } else {
+        // Flat baseline (most of the time)
+        amplitude = 0;
+      }
+      
+      return amplitude;
+    };
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);

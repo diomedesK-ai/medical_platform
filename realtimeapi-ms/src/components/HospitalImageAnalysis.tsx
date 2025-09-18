@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useState } from 'react';
 import { FaChevronDown, FaPlay, FaTimes } from 'react-icons/fa';
+import Image from 'next/image';
 
 interface HospitalImageAnalysisProps {
   onAnalysisComplete?: (analysis: string) => void;
@@ -128,7 +129,13 @@ export default function HospitalImageAnalysis({ onAnalysisComplete }: HospitalIm
                      }}
                 />
                 {imageUrl ? (
-                  <img src={imageUrl} alt="input" className="object-contain w-full h-full" />
+                  <Image 
+                    src={imageUrl} 
+                    alt="Medical image for analysis" 
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
                 ) : (
                   <div className="text-gray-300 text-xs">Upload a medical image (PNG/JPG/GIF)</div>
                 )}
