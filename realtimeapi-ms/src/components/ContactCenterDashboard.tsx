@@ -180,6 +180,9 @@ const ContactCenterDashboard: React.FC = () => {
   const [showSTPMonitor, setShowSTPMonitor] = useState(false);
   const [showDocumentProcessor, setShowDocumentProcessor] = useState(false);
   const [showValidationSelector, setShowValidationSelector] = useState(false);
+  const [showClinicalValidation, setShowClinicalValidation] = useState(false);
+  const [showInternalValidation, setShowInternalValidation] = useState(false);
+  const [showProcessingPipeline, setShowProcessingPipeline] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingResults, setProcessingResults] = useState<any>(null);
@@ -344,6 +347,16 @@ const ContactCenterDashboard: React.FC = () => {
       };
       reader.onerror = error => reject(error);
     });
+  };
+
+  const resetDemo = () => {
+    setSelectedFile(null);
+    setIsProcessing(false);
+    setProcessingResults(null);
+    setProcessingStep('');
+    setShowClinicalValidation(false);
+    setShowInternalValidation(false);
+    setShowProcessingPipeline(false);
   };
 
   // Get pending approvals count
@@ -2366,78 +2379,97 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
 
       {/* Clinical Processor Modal */}
       {showDocumentProcessor && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4">
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Clinical Processor</h3>
                 <p className="text-sm text-gray-500">Process labs, imaging reports, prescriptions, and clinical PDFs</p>
               </div>
-              <button
-                onClick={() => setShowDocumentProcessor(false)}
-                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-              >
-                <FaTimes className="text-gray-400" size={14} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={resetDemo}
+                  className="w-7 h-7 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
+                  title="Reset Demo"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setShowDocumentProcessor(false)}
+                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                >
+                  <FaTimes className="text-gray-400" size={14} />
+                </button>
+              </div>
             </div>
             
-            <div className="p-6">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Medical Document Intelligence</h3>
-                <p className="text-sm text-gray-500 mb-2">Upload for structured extraction, medical coding, and validation</p>
-                <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
+            <div className="p-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+                <h3 className="text-base font-medium text-gray-900 mb-1">Clinical Processor</h3>
+                <p className="text-xs text-gray-500 mb-3">Upload for structured extraction, medical coding, and validation</p>
+                <div className="grid grid-cols-3 gap-2 text-xs mb-3">
                   <div className="px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full">Auto-detected: <span className="font-medium">{selectedFile ? (selectedFile.name.match(/xray|cxr|radiology|dicom/i) ? 'Radiology' : selectedFile.name.match(/cbc|lab|result|report/i) ? 'Lab Report' : selectedFile.name.match(/rx|prescription|med/i) ? 'Prescription' : 'General Clinical') : '—'}</span></div>
                   <div className="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">Models: <span className="font-medium">{selectedFile ? (selectedFile.name.match(/xray|cxr|radiology|dicom/i) ? 'Radiology Parser' : selectedFile.name.match(/cbc|lab|result|report/i) ? 'Lab Extractor' : selectedFile.name.match(/rx|prescription|med/i) ? 'Medication & SIG' : 'General Clinical') : '—'}</span></div>
                   <div className="px-2 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full">Output: <span className="font-medium">FHIR JSON</span></div>
                 </div>
-                {selectedFile ? (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-900 mb-2">Selected: {selectedFile.name}</p>
-                    <button 
-                      onClick={() => setSelectedFile(null)}
-                      className="text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      Remove file
-                    </button>
-                  </div>
-                ) : null}
-                <input 
-                  type="file" 
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  className="hidden" 
-                  id="document-upload"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setSelectedFile(file);
-                    }
-                  }}
-                />
-                <label 
-                  htmlFor="document-upload"
-                  className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-700 rounded-full hover:from-blue-500/30 hover:to-blue-600/30 transition-all cursor-pointer border border-blue-300/30 hover:border-blue-400/40 backdrop-blur-sm"
-                >
-                  {selectedFile ? 'Change File' : 'Choose File'}
-                </label>
-                <p className="text-xs text-gray-400 mt-2">Supports PDF, JPG, PNG, DOC, DOCX • PHI safe</p>
-                {selectedFile && (
-                  <div className="mt-4 flex flex-col items-center gap-2">
+                
+                <div className="flex items-center justify-center gap-3">
+                  {selectedFile ? (
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-medium text-gray-900 truncate max-w-32">{selectedFile.name}</div>
+                      <button 
+                        onClick={() => setSelectedFile(null)}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400">No file selected</div>
+                  )}
+                  
+                  <input 
+                    type="file" 
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    className="hidden" 
+                    id="document-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="document-upload"
+                    className="w-6 h-6 bg-blue-50 border border-blue-200 text-blue-600 rounded-full hover:bg-blue-100 transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    <span className="text-sm font-medium">+</span>
+                  </label>
+                  
+                  {selectedFile && (
                     <button 
                       onClick={processDocument}
                       disabled={isProcessing}
-                      className="w-8 h-8 bg-gradient-to-r from-green-500/20 to-green-600/20 text-green-700 rounded-full hover:from-green-500/30 hover:to-green-600/30 transition-all border border-green-300/30 hover:border-green-400/40 backdrop-blur-sm disabled:opacity-50 flex items-center justify-center"
+                      className="w-6 h-6 bg-green-50 border border-green-200 text-green-600 rounded-full hover:bg-green-100 transition-all disabled:opacity-50 flex items-center justify-center"
                     >
                       {isProcessing ? (
                         <div className="w-3 h-3 border border-green-600 border-t-transparent rounded-full animate-spin"></div>
                       ) : (
-                        <span className="text-sm font-medium">✓</span>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
                       )}
                     </button>
-                    {isProcessing && (
-                      <div className="text-xs text-gray-600 text-center">
-                        {processingStep || 'Processing...'}
-                      </div>
-                    )}
+                  )}
+                </div>
+                
+                <p className="text-xs text-gray-400 mt-2">PDF, JPG, PNG, DOCX, DICOM, ECG, HL7 • PHI safe</p>
+                {isProcessing && (
+                  <div className="text-xs text-blue-600 mt-2 font-medium">
+                    {processingStep || 'Processing...'}
                   </div>
                 )}
                 
@@ -2446,6 +2478,7 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
                   <div>
                     <label className="text-xs text-gray-600">Model</label>
                     <select className="w-full border rounded-md px-2 py-1 text-sm">
+                      <option>Auto (Smart Detection)</option>
                       <option>General Clinical (LLM)</option>
                       <option>Radiology Report Parser</option>
                       <option>Lab Result Extractor</option>
@@ -2474,18 +2507,85 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
 
                 {/* Processing Results */}
                 {processingResults && (
-                  <div className="mt-6 p-4 bg-green-50/30 rounded-xl border border-green-100">
-                    <h4 className="font-semibold text-gray-900 mb-3">AI Extraction Results</h4>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <pre className="text-xs text-gray-700 whitespace-pre-wrap overflow-auto max-h-64">
-                        {JSON.stringify(processingResults, null, 2)}
-                      </pre>
+                  <div className="mt-4 p-3 bg-green-50/30 rounded-xl border border-green-100">
+                    <h4 className="font-medium text-gray-900 mb-2 text-sm">Clinical Analysis Results</h4>
+                    
+                    {/* Document Type & Classification */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-white rounded-lg p-2 border border-gray-200">
+                        <div className="text-xs text-gray-500">Document Type</div>
+                        <div className="text-sm font-medium text-gray-900">{processingResults.documentType || 'Unknown'}</div>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 border border-gray-200">
+                        <div className="text-xs text-gray-500">Classification</div>
+                        <div className="text-sm font-medium text-gray-900">{processingResults.classification || 'N/A'}</div>
+                      </div>
                     </div>
-                    <div className="mt-3 flex gap-2">
-                      <button className="px-4 py-2 bg-green-600 text-white rounded-full text-sm hover:bg-green-700 transition-colors">
+
+                    {/* Patient Info */}
+                    {processingResults.patientInfo && (
+                      <div className="bg-white rounded-lg p-2 border border-gray-200 mb-3">
+                        <div className="text-xs text-gray-500 mb-1">Patient Information</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-gray-500">Name:</span> {processingResults.patientInfo.fullName || 'Not detected'}</div>
+                          <div><span className="text-gray-500">ID:</span> {processingResults.patientInfo.patientId || 'Not detected'}</div>
+                          <div><span className="text-gray-500">DOB:</span> {processingResults.patientInfo.dateOfBirth || 'Not detected'}</div>
+                          <div><span className="text-gray-500">Gender:</span> {processingResults.patientInfo.gender || 'Not detected'}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Medical Analysis */}
+                    {processingResults.medicalAnalysis && (
+                      <div className="bg-white rounded-lg p-2 border border-gray-200 mb-3">
+                        <div className="text-xs text-gray-500 mb-1">Clinical Findings</div>
+                        <div className="text-xs text-gray-700 max-h-20 overflow-y-auto">
+                          {processingResults.medicalAnalysis.findings || 'No specific findings noted'}
+                        </div>
+                        {processingResults.medicalAnalysis.recommendations && processingResults.medicalAnalysis.recommendations.length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-xs text-gray-500">Recommendations:</div>
+                            <div className="text-xs text-blue-700">
+                              {processingResults.medicalAnalysis.recommendations.join(', ')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Validation Status */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-white rounded-lg p-2 border border-gray-200">
+                        <div className="text-xs text-gray-500">Risk Level</div>
+                        <div className={`text-sm font-medium ${
+                          processingResults.riskAssessment?.riskLevel === 'LOW' ? 'text-green-600' :
+                          processingResults.riskAssessment?.riskLevel === 'MEDIUM' ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {processingResults.riskAssessment?.riskLevel || 'Unknown'}
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 border border-gray-200">
+                        <div className="text-xs text-gray-500">Confidence</div>
+                        <div className="text-sm font-medium text-gray-900">{processingResults.riskAssessment?.confidence || 0}%</div>
+                      </div>
+                    </div>
+
+                    {/* Raw JSON Toggle */}
+                    <details className="mb-3">
+                      <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">View Raw JSON</summary>
+                      <div className="mt-2 bg-gray-50 rounded p-2 border">
+                        <pre className="text-xs text-gray-700 whitespace-pre-wrap overflow-auto max-h-32">
+                          {JSON.stringify(processingResults, null, 2)}
+                        </pre>
+                      </div>
+                    </details>
+
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-green-600 text-white rounded-full text-xs hover:bg-green-700 transition-colors">
                         Approve & Route
                       </button>
-                      <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 transition-colors">
+                      <button className="px-3 py-1 text-gray-600 border border-gray-300 rounded-full text-xs hover:bg-gray-50 transition-colors">
                         Review Further
                       </button>
                     </div>
@@ -2496,15 +2596,29 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
               <div className="mt-6 space-y-4">
                 <div className="p-4 bg-blue-50/20 rounded-xl border border-blue-100/50">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">Clinical Validation Checks</h4>
+                    <button 
+                      onClick={() => setShowClinicalValidation(!showClinicalValidation)}
+                      className="flex items-center gap-2 text-left hover:text-blue-600 transition-colors"
+                    >
+                      <svg 
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showClinicalValidation ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <h4 className="font-semibold text-gray-900">Clinical Validation Checks</h4>
+                    </button>
                     <button 
                       onClick={() => setShowValidationSelector(true)}
-                      className="w-7 h-7 bg-blue-400/70 text-white rounded-full flex items-center justify-center hover:bg-blue-500/80 transition-colors text-sm font-medium"
+                      className="text-blue-500 hover:text-blue-600 transition-colors text-lg font-light"
                     >
                       +
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  {showClinicalValidation && (
+                    <div className="grid grid-cols-2 gap-3 text-sm animate-in slide-in-from-top-2 duration-200">
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
                       <span className="text-gray-700">EHR Patient Match</span>
@@ -2529,12 +2643,27 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
                       <input type="checkbox" className="rounded" />
                       <span className="text-gray-700">Consent/Privacy Policy</span>
                     </label>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-green-50/30 rounded-xl border border-green-100">
-                  <h4 className="font-semibold text-gray-900 mb-3">Internal Validation Checks</h4>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <button 
+                    onClick={() => setShowInternalValidation(!showInternalValidation)}
+                    className="flex items-center gap-2 text-left mb-3 hover:text-green-600 transition-colors"
+                  >
+                    <svg 
+                      className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showInternalValidation ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <h4 className="font-semibold text-gray-900">Internal Validation Checks</h4>
+                  </button>
+                  {showInternalValidation && (
+                    <div className="grid grid-cols-2 gap-3 text-sm animate-in slide-in-from-top-2 duration-200">
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
                       <span className="text-gray-700">Document Authenticity</span>
@@ -2559,12 +2688,27 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
                       <input type="checkbox" className="rounded" />
                       <span className="text-gray-700">Risk Assessment</span>
                     </label>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-xl">
-                  <h4 className="font-medium text-gray-900 mb-2">Processing Pipeline</h4>
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <button 
+                    onClick={() => setShowProcessingPipeline(!showProcessingPipeline)}
+                    className="flex items-center gap-2 text-left mb-2 hover:text-gray-700 transition-colors"
+                  >
+                    <svg 
+                      className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showProcessingPipeline ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <h4 className="font-semibold text-gray-900">Processing Pipeline</h4>
+                  </button>
+                  {showProcessingPipeline && (
+                    <div className="space-y-2 text-sm text-gray-600 animate-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                       <span>Document Upload & Classification</span>
@@ -2585,7 +2729,8 @@ IMPORTANT: Maintain context from previous messages. If a medical image analysis 
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                       <span>LLM Analysis & Recommendation</span>
                     </div>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

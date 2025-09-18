@@ -175,80 +175,6 @@ const CitizenServicesInterface: React.FC = () => {
   const [documentSearchQuery, setDocumentSearchQuery] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode for patient view
   
-  // Generate follow-up agent responses for Patient Concierge
-  const generateFollowUpAgentResponses = (originalMessage: string) => {
-    const responses: { agent: string; message: string; delay: number }[] = [];
-
-    // Check for @dispatch calls (equipment/delivery)
-    if (originalMessage.includes('@dispatch')) {
-      responses.push({
-        agent: '@dispatch',
-        message: '@dispatch here - Hello Ahmad! I received your equipment request. Let me check our delivery system and your address details... Processing now.',
-        delay: 1800
-      });
-      responses.push({
-        agent: '@dispatch',
-        message: '@dispatch update - Great news Ahmad! Your LifeSignals patch has been dispatched via Pos Malaysia. Tracking: PM789012345. Expected delivery tomorrow 9AM-5PM. You\'ll get an SMS when it\'s out for delivery!',
-        delay: 4800
-      });
-    }
-
-    // Check for @cardio calls (heart-related)
-    if (originalMessage.includes('@cardio')) {
-      responses.push({
-        agent: '@cardio',
-        message: '@cardio here - Hello Ahmad! Let me review your heart test results and explain them in simple terms... Checking your ECG and cardiac history.',
-        delay: 2200
-      });
-      responses.push({
-        agent: '@cardio',
-        message: '@cardio results - Good news Ahmad! Your ECG shows a normal, healthy heart rhythm. No concerning findings. Continue your current medications and schedule a follow-up in 3 months. Any chest pain or shortness of breath, contact us immediately.',
-        delay: 5500
-      });
-    }
-
-    // Check for @lab calls (test results)
-    if (originalMessage.includes('@lab')) {
-      responses.push({
-        agent: '@lab',
-        message: '@lab here - Hello Ahmad! Let me pull up your recent lab results and explain what they mean for your health... Reviewing your blood work now.',
-        delay: 1600
-      });
-      responses.push({
-        agent: '@lab',
-        message: '@lab results - Your blood tests look good, Ahmad! Cholesterol levels are within normal range, blood sugar is stable. Keep up with your current diet and medications. Next lab work scheduled in 6 months.',
-        delay: 4200
-      });
-    }
-
-    // Check for @pharmacy calls (medications)
-    if (originalMessage.includes('@pharmacy')) {
-      responses.push({
-        agent: '@pharmacy',
-        message: '@pharmacy here - Hello Ahmad! Let me check your medication status and refill schedule... Reviewing your prescription history.',
-        delay: 1400
-      });
-      responses.push({
-        agent: '@pharmacy',
-        message: '@pharmacy update - Your medications are ready for pickup, Ahmad! Metformin refill available at Pharmacy Guardian, Lot 10. Bring your IC. Any questions about dosing, just call us!',
-        delay: 3800
-      });
-    }
-
-    // Execute the responses with delays
-    responses.forEach(response => {
-      setTimeout(() => {
-        const agentResponse: Message = {
-          id: (Date.now() + Math.random()).toString(),
-          sender: 'agent',
-          content: response.message,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          agentName: response.agent
-        };
-        setMessages(prev => [...prev, agentResponse]);
-      }, response.delay);
-    });
-  };
   
   const [myServices, setMyServices] = useState<Service[]>([
     AVAILABLE_SERVICES[1], // Lab Results
@@ -536,6 +462,55 @@ const CitizenServicesInterface: React.FC = () => {
     }
   ];
 
+  // Generate follow-up agent responses for patient interface
+  const generatePatientAgentResponses = (originalMessage: string) => {
+    const responses: { agent: string; message: string; delay: number }[] = [];
+
+    // Check for @dispatch calls
+    if (originalMessage.includes('@dispatch')) {
+      responses.push({
+        agent: '@dispatch',
+        message: '@dispatch here - Hello Ahmad! I received your request. Let me check on that LifeSignals patch delivery for you right away... \n\nChecking our logistics system now.',
+        delay: 1500
+      });
+      responses.push({
+        agent: '@dispatch',
+        message: '@dispatch update - Great news! I found your order details. Your LifeSignals patches were shipped via FedEx yesterday to your registered address. Tracking number: FX789012345. Expected delivery: tomorrow by 2 PM. Is there anything else I can help you coordinate?',
+        delay: 4000
+      });
+    }
+
+    // Check for @cardio calls
+    if (originalMessage.includes('@cardio')) {
+      responses.push({
+        agent: '@cardio',
+        message: '@cardio here - Hello Ahmad! I\'m reviewing your cardiac information now. Let me pull up your recent test results and provide you with a clear explanation...',
+        delay: 2000
+      });
+    }
+
+    // Check for @lab calls
+    if (originalMessage.includes('@lab')) {
+      responses.push({
+        agent: '@lab',
+        message: '@lab here - Hi Ahmad! I\'m looking at your lab test request. Let me check your recent results and see what additional testing might be helpful for your care...',
+        delay: 1800
+      });
+    }
+
+    // Execute the responses with delays
+    responses.forEach(response => {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          sender: 'agent',
+          content: response.message,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }, response.delay);
+    });
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || loading || isStreaming) return;
     
@@ -554,40 +529,59 @@ const CitizenServicesInterface: React.FC = () => {
     setStreamingMessage('');
     
     try {
-      // Call the chat API with streaming
-      const response = await fetch('/api/chat', {
+      // Call the openai-responses API with streaming for better agent coordination
+      const response = await fetch('/api/openai-responses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [
-            {
-              role: 'system',
-              content: `You are a PATIENT CONCIERGE working with a collaborative medical team. Help patients navigate healthcare services by coordinating with specialist agents when needed.
+          prompt: `You are a PATIENT CONCIERGE for Malaysian Healthcare Services working with a collaborative medical team. Provide caring, patient-focused support and coordinate with specialist agents when needed.
+
+PATIENT CONTEXT:
+- Patient Name: Ahmad Bin Abdullah
+- Patient ID: 12345
+- Current conversation history: ${messages.slice(-3).map(m => `${m.sender}: ${m.content}`).join('\n')}
 
 COLLABORATIVE PATIENT SUPPORT:
 - Work with medical team agents to get patients the best care
-- Hand off complex requests to appropriate specialists  
-- Always include specialist responses in the same message
+- Hand off complex requests to appropriate specialists
+- Provide updates and confirmations from other agents
 - Be proactive in coordinating patient needs
 
 AGENT COLLABORATION FOR PATIENTS:
 - @triage - Help assess symptoms, determine urgency, route to right care
 - @cardio - Heart-related concerns, ECG results, cardiac follow-up
 - @lab - Lab test results, blood work questions, specimen collection
-- @radiology - Imaging appointments, scan prep, report explanations
+- @radiology - Imaging appointments, scan prep, report explanations  
 - @pharmacy - Medication questions, refills, drug interactions
 - @dispatch - Equipment delivery, supply requests, logistics
 
-MANDATORY COLLABORATIVE RESPONSES - ALWAYS include agent responses:
-When patients need specialist help, provide BOTH the request AND the response:
+MULTI-AGENT PATIENT SUPPORT:
+When patients need specialist help, coordinate with agents but respond as the PATIENT CONCIERGE first. Specialists will respond in separate messages.
 
-EXAMPLE: "Let me connect you with @cardio about your heart test.
+EXAMPLE - Patient asking about test results:
+"Let me connect you with @cardio to review your heart test results in simple terms, Ahmad.
 
-@cardio, can you explain Ahmad's ECG results in simple terms?
+@cardio, can you please explain Ahmad's recent ECG findings in patient-friendly language?
 
-@cardio here - Hello Ahmad! Your ECG is normal, no heart problems detected. Continue your medications and see us in 3 months."
+I'm pulling up your test results now and will make sure you understand everything clearly."
+
+EXAMPLE - Patient asking about equipment delivery:
+"I'll have @dispatch check on your LifeSignals patch delivery status right away.
+
+@dispatch, can you provide current tracking information for Ahmad's equipment order?
+
+While they check that, let me review your account to see what we have on file..."
+
+PATIENT-FOCUSED APPROACH:
+- Always address the patient by name (Ahmad)
+- Coordinate with specialists but respond as concierge first
+- Show you're actively working on their request
+- Use simple, caring language
+- Specialists will follow up in separate messages
+
+Patient Query: ${currentInput}
 
 MALAYSIAN HEALTHCARE SERVICES EXPERTISE:
 🏥 PRIMARY CARE: General practitioners, family medicine, preventive care, health screenings, vaccinations, wellness checks
@@ -615,13 +609,7 @@ SPECIAL CAPABILITIES:
 - Offer digital and physical service options
 - Help with urgent/emergency situations
 
-Remember: You are here to serve Malaysian citizens with patience and care. Whether someone needs help finding the right office or navigating complex applications, treat every citizen with respect and provide the support they deserve. Make government services accessible and stress-free for everyone! 🇲🇾`
-            },
-            {
-              role: 'user',
-              content: currentInput
-            }
-          ],
+Remember: You are here to serve Malaysian citizens with patience and care. Whether someone needs help finding the right office or navigating complex applications, treat every citizen with respect and provide the support they deserve. Make government services accessible and stress-free for everyone! 🇲🇾`,
           stream: true
         })
       });
@@ -685,9 +673,9 @@ Remember: You are here to serve Malaysian citizens with patience and care. Wheth
       setStreamingMessage('');
       
       // Generate follow-up agent responses after delay
-      if (streamingMessage.trim()) {
+      if (fullResponse.trim()) {
         setTimeout(() => {
-          generateFollowUpAgentResponses(streamingMessage);
+          generatePatientAgentResponses(currentInput);
         }, 2000);
       }
       

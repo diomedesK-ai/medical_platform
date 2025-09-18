@@ -9,32 +9,60 @@ export async function POST(req: NextRequest) {
   try {
     const { image, filename, fileType } = await req.json();
 
-    // Create a comprehensive prompt for Malaysian government document extraction
-    const systemPrompt = `You are an AI document processor for the Malaysian Government Services platform. 
+    // Create a comprehensive prompt for medical document extraction
+    const systemPrompt = `You are an advanced AI medical document processor for the Healthcare AI Platform. 
     
-    Analyze the uploaded document and extract all relevant information into a structured JSON format. 
+    Analyze the uploaded medical document/image and extract all relevant clinical information into a structured JSON format. 
     
-    For Malaysian government documents, focus on:
-    - Personal Information (Name, MyKad/IC Number, Address, Phone, Email)
-    - Document Type Classification
-    - Government Service Type (Health, Education, Welfare, Legal, etc.)
-    - Key Fields and Values
-    - Validation Status
-    - Risk Assessment
+    For medical documents and images, focus on:
+    - Document Type (Lab Report, X-Ray, MRI, CT Scan, Prescription, Medical Record, etc.)
+    - Patient Information (Name, Patient ID, DOB, Gender, Contact)
+    - Clinical Data (Vital Signs, Lab Values, Diagnoses, Medications, Procedures)
+    - Medical Imaging Analysis (if applicable - describe findings, abnormalities, recommendations)
+    - Healthcare Provider Information
+    - Dates and Timeline
+    - Clinical Recommendations and Follow-up Actions
+    
+    For medical images (X-rays, MRIs, CT scans, etc.), provide detailed clinical analysis including:
+    - Anatomical structures visible
+    - Any abnormal findings or pathology (lesions, masses, fractures, inflammation, etc.)
+    - Clinical significance and urgency level
+    - Recommended follow-up or additional studies
+    
+    CRITICAL: For risk assessment, use these guidelines:
+    - HIGH risk: Any suspicious lesions, masses, tumors, fractures, acute conditions, or abnormalities requiring immediate attention
+    - MEDIUM risk: Minor abnormalities, chronic conditions, or findings requiring routine follow-up
+    - LOW risk: Normal findings or very minor variations within normal limits
     
     Return a JSON object with the following structure:
     {
-      "documentType": "string",
-      "classification": "string", 
-      "personalInfo": {
+      "documentType": "string (Lab Report, X-Ray, MRI, CT Scan, Prescription, Medical Record, etc.)",
+      "classification": "string (Clinical Document, Medical Imaging, Lab Results, etc.)", 
+      "patientInfo": {
         "fullName": "string",
-        "icNumber": "string",
-        "address": "string",
-        "phone": "string",
-        "email": "string"
+        "patientId": "string",
+        "dateOfBirth": "string",
+        "gender": "string",
+        "contact": "string"
       },
-      "serviceType": "string",
-      "extractedFields": {},
+      "clinicalData": {
+        "vitalSigns": {},
+        "labValues": {},
+        "diagnoses": [],
+        "medications": [],
+        "procedures": []
+      },
+      "medicalAnalysis": {
+        "findings": "string (detailed clinical findings)",
+        "abnormalities": [],
+        "clinicalSignificance": "string",
+        "recommendations": []
+      },
+      "providerInfo": {
+        "facility": "string",
+        "physician": "string",
+        "department": "string"
+      },
       "validationChecks": {
         "documentAuthenticity": "PASS/FAIL/PENDING",
         "fieldCompleteness": "PASS/FAIL/PENDING", 
@@ -64,7 +92,15 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: "text",
-              text: `Please analyze this document: ${filename} (${fileType})`
+              text: `Please carefully analyze this medical document/image: ${filename} (${fileType}). 
+              
+              If this is a medical image (X-ray, MRI, CT scan, etc.), examine it thoroughly for:
+              - Any lesions, masses, tumors, or abnormal growths
+              - Fractures, dislocations, or structural abnormalities  
+              - Signs of inflammation, infection, or disease
+              - Any other pathological findings
+              
+              Provide detailed clinical findings and set the appropriate risk level based on what you observe. Be specific about any abnormalities detected.`
             },
             {
               type: "image_url",
@@ -92,18 +128,32 @@ export async function POST(req: NextRequest) {
     } catch (parseError) {
       // If not valid JSON, create a structured response
       structuredResponse = {
-        documentType: "Unknown",
-        classification: "Document Analysis",
-        personalInfo: {
+        documentType: "Unknown Medical Document",
+        classification: "Medical Document Analysis",
+        patientInfo: {
           fullName: "Not detected",
-          icNumber: "Not detected",
-          address: "Not detected",
-          phone: "Not detected",
-          email: "Not detected"
+          patientId: "Not detected",
+          dateOfBirth: "Not detected",
+          gender: "Not detected",
+          contact: "Not detected"
         },
-        serviceType: "General",
-        extractedFields: {
-          rawAnalysis: extractedContent
+        clinicalData: {
+          vitalSigns: {},
+          labValues: {},
+          diagnoses: [],
+          medications: [],
+          procedures: []
+        },
+        medicalAnalysis: {
+          findings: extractedContent,
+          abnormalities: [],
+          clinicalSignificance: "Requires manual review by healthcare professional",
+          recommendations: ["Manual clinical review recommended"]
+        },
+        providerInfo: {
+          facility: "Not detected",
+          physician: "Not detected",
+          department: "Not detected"
         },
         validationChecks: {
           documentAuthenticity: "PENDING",
@@ -112,12 +162,16 @@ export async function POST(req: NextRequest) {
           formatCompliance: "PASS"
         },
         riskAssessment: {
-          riskLevel: "LOW",
-          riskFactors: [],
+          riskLevel: extractedContent.toLowerCase().includes('lesion') || 
+                    extractedContent.toLowerCase().includes('mass') || 
+                    extractedContent.toLowerCase().includes('tumor') || 
+                    extractedContent.toLowerCase().includes('abnormal') || 
+                    extractedContent.toLowerCase().includes('suspicious') ? "HIGH" : "LOW",
+          riskFactors: extractedContent.toLowerCase().includes('lesion') ? ["Lesion detected"] : [],
           confidence: 85
         },
-        recommendations: ["Document processed successfully", "Manual review recommended"],
-        processingNotes: "Document analyzed using AI vision model"
+        recommendations: ["Document processed successfully", "Clinical review recommended"],
+        processingNotes: "Medical document analyzed using AI vision model"
       };
     }
 
