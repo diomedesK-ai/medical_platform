@@ -72,16 +72,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
             </div>
-            <span className="text-purple-200 font-semibold text-lg glow-text">AI-Powered Government Platform</span>
+            <span className="text-purple-200 font-semibold text-lg glow-text">AI-Powered Healthcare Platform</span>
           </div>
 
           {/* Main Headline */}
           <div className="space-y-1">
-            <h1 className="text-8xl font-bold leading-tight">
+            <h1 className="text-6xl font-bold leading-tight">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400" style={{textShadow: '0 0 20px rgba(147, 51, 234, 0.6), 0 0 40px rgba(147, 51, 234, 0.4)'}}>
-                Omni
+                Redefining Healthcare Economics:
               </span>
-              <span className="text-white" style={{textShadow: '0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.2)'}}>-Government Vision</span>
+              <span className="text-white" style={{textShadow: '0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.2)'}}> Clinical Precision at a Fraction of the Cost</span>
             </h1>
           </div>
 
@@ -98,11 +98,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
             </button>
             
             <button className="px-8 py-4 border-2 text-lg font-semibold rounded-full transition-all duration-300 glow-button button-soft">
-              Digital Concierge
+              Patient Concierge
             </button>
             
             <button className="px-8 py-4 border-2 text-lg font-semibold rounded-full transition-all duration-300 glow-button button-soft">
-              Digital Workforce
+              Healthcare Agents
             </button>
           </div>
 
@@ -110,13 +110,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onClose }) => {
           <div className="flex items-center gap-8 pt-8 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Available 24/7</span>
+              <span>AI Agents Reduce Costs by 80%</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>No setup required</span>
+              <span>Same Quality, Lower Cost</span>
             </div>
             <div className="flex items-center gap-2">
-              <span>Enterprise ready</span>
+              <span>Perfect for Cost-Sensitive Regions</span>
             </div>
           </div>
         </div>

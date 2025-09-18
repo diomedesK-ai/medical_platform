@@ -3,9 +3,9 @@
 import React from 'react';
 
 const EXPERIENCES = [
-  { key: 'government', label: 'Government Services', icon: '🏛️' },
+  { key: 'government', label: 'Healthcare Professional', icon: '🩺' },
   { key: 'health', label: 'Health Portal', icon: '🏥' },
-  { key: 'citizen', label: 'Citizen Services', icon: '👥' },
+  { key: 'citizen', label: 'Patient Services', icon: '👥' },
   { key: 'wealth', label: 'Wealth Advisory', icon: '💰' },
 ];
 

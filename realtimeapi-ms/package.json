@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 5001",
+    "dev": "next dev --turbopack -p 5005",
     "ws-server": "node websocket-server.js",
     "dev-all": "concurrently \"npm run ws-server\" \"npm run dev\"",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5005",
     "lint": "next lint"
   },
   "dependencies": {

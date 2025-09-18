@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "AI Experience",
-  description: "Government AI Hub - Citizen Services Platform",
+  description: "Healthcare AI Hub - Patient Services Platform",
 };
 
 export default function RootLayout({

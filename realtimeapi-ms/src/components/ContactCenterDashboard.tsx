@@ -24,8 +24,13 @@ import {
   FaHome,
   FaGavel,
   FaUser,
-  FaRobot
+  FaRobot,
+  FaHeartbeat,
+  FaEye,
+  FaPills,
+  FaHospital
 } from 'react-icons/fa';
+import HospitalImageAnalysis from './HospitalImageAnalysis';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -163,7 +168,7 @@ const ContactCenterDashboard: React.FC = () => {
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: '**Welcome to Government Guru!**\n\nUse agent commands:\n• @health - Health services and medical support\n• @edu - Education grants and scholarships\n• @welfare - Social welfare and housing assistance\n• @legal - Legal aid and documentation\n\nHow can I help with government services today?', timestamp: '2:30 PM' }
+    { role: 'assistant', content: '**Health Command - Agentic System Online**\n\n**Available Agents (Ready to Execute):**\n• **@triage** - Execute intake, assign priority, route patients\n• **@cardio** - Order ECGs, initiate protocols, calculate scores\n• **@rad** - Order imaging (MRI/CT/X-ray), schedule appointments\n• **@lab** - Place orders, interpret results, dispatch LifeSignals patches\n• **@pharm** - Process prescriptions, check interactions, manage refills\n\n**Standard Operating Procedures Active**\n**Agents will EXECUTE actions, not just advise**\n\nUpload medical images for analysis, then ask agents to take action.', timestamp: '2:30 PM' }
   ]);
   const [loading, setLoading] = useState(false);
   const [showAddAgentModal, setShowAddAgentModal] = useState(false);
@@ -180,17 +185,17 @@ const ContactCenterDashboard: React.FC = () => {
   const [processingResults, setProcessingResults] = useState<any>(null);
   const [processingStep, setProcessingStep] = useState('');
   const [activeAIAgents, setActiveAIAgents] = useState([
-    { name: 'Health AI Assistant', type: 'Healthcare Services', status: 'active', requests: '156 today' },
-    { name: 'Education AI Advisor', type: 'Education & Grants', status: 'active', requests: '89 today' },
-    { name: 'Welfare AI Specialist', type: 'Social Welfare', status: 'active', requests: '134 today' },
-    { name: 'Legal AI Counselor', type: 'Legal Aid', status: 'active', requests: '67 today' }
+    { name: 'Triage AI', type: 'Emergency Intake', status: 'active', requests: '156 today' },
+    { name: 'Cardiology AI', type: 'Cardiology', status: 'active', requests: '89 today' },
+    { name: 'Radiology AI', type: 'Imaging', status: 'active', requests: '134 today' },
+    { name: 'Pharmacy AI', type: 'Medication', status: 'active', requests: '67 today' }
   ]);
   
   const [aiActivityFeed, setAiActivityFeed] = useState([
-    { id: 1, agent: 'Health AI Assistant', action: 'Processed medical document for Citizen #MY001247', status: 'completed', timestamp: '2 min ago', needsApproval: false },
-    { id: 2, agent: 'Education AI Advisor', action: 'Evaluated scholarship application for Citizen #MY001248', status: 'pending_approval', timestamp: '3 min ago', needsApproval: true },
-    { id: 3, agent: 'Legal AI Counselor', action: 'Generated legal document template for Citizen #MY001250', status: 'completed', timestamp: '5 min ago', needsApproval: false },
-    { id: 4, agent: 'Welfare AI Specialist', action: 'Calculated housing assistance eligibility', status: 'completed', timestamp: '7 min ago', needsApproval: false }
+    { id: 1, agent: 'Triage AI', action: 'Prioritized chest pain case to urgent', status: 'completed', timestamp: '2 min ago', needsApproval: false },
+    { id: 2, agent: 'Lab AI', action: 'Posted lab test results (CBC) for Patient #MY001248', status: 'pending_approval', timestamp: '3 min ago', needsApproval: true },
+    { id: 3, agent: 'Radiology AI', action: 'Scheduled Chest X-ray; checked contraindications', status: 'completed', timestamp: '5 min ago', needsApproval: false },
+    { id: 4, agent: 'Pharmacy AI', action: 'Updated medication reconciliation and flagged interaction', status: 'completed', timestamp: '7 min ago', needsApproval: false }
   ]);
 
   // Add AI agent function
@@ -218,7 +223,7 @@ const ContactCenterDashboard: React.FC = () => {
     // Add success message
     const newMessage: Message = {
       role: 'assistant',
-      content: `**${service.name} Connected!**\n\nThe ${service.type} AI agent has been successfully added to your government services. This agent is now available to assist with citizen requests.`,
+      content: `**${service.name} Connected!**\n\nThe ${service.type} AI agent has been added to your patient care workspace. This agent is now available to assist with clinical requests.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages(prev => [...prev, newMessage]);
@@ -227,16 +232,16 @@ const ContactCenterDashboard: React.FC = () => {
   // Live AI activity feed simulation
   useEffect(() => {
     const activities = [
-      'Processed citizen ID verification',
-      'Generated tax calculation report',
-      'Analyzed healthcare eligibility',
-      'Created legal document draft',
-      'Evaluated education grant application',
-      'Calculated welfare benefits',
-      'Translated document to Malay',
-      'Optimized service routing',
-      'Validated compliance requirements',
-      'Processed emergency response request'
+      'Processed patient ID verification',
+      'Posted lab test results (CBC)',
+      'Analyzed triage notes and prioritized case',
+      'Updated medication reconciliation',
+      'Scheduled imaging (Chest X-ray)',
+      'Reviewed vitals from LifeSignals patch',
+      'Retrieved FaceHeart real-time monitoring',
+      'Coordinated care team assignment',
+      'Validated consent and compliance requirements',
+      'Processed emergency intake request'
     ];
 
     const interval = setInterval(() => {
@@ -344,6 +349,62 @@ const ContactCenterDashboard: React.FC = () => {
   // Get pending approvals count
   const pendingApprovals = aiActivityFeed.filter(activity => activity.needsApproval).length;
 
+  // Add new activity to live feed (called by AI agents)
+  const addToActivityFeed = (agent: string, action: string, patientId?: string, ticketId?: string) => {
+    const newActivity = {
+      id: Date.now(),
+      agent,
+      action: patientId ? `${action} for Patient ${patientId}` : action,
+      status: 'completed' as const,
+      timestamp: 'just now',
+      needsApproval: false,
+      ticketId
+    };
+    setAiActivityFeed(prev => [newActivity, ...prev.slice(0, 9)]);
+  };
+
+  // Parse agent response and add to activity feed
+  const parseAndAddToActivityFeed = (userInput: string, aiResponse: string) => {
+    // Extract agent type from user input
+    let agentName = 'Health AI';
+    if (userInput.includes('@triage')) agentName = 'Triage AI';
+    else if (userInput.includes('@cardio')) agentName = 'Cardiology AI';
+    else if (userInput.includes('@rad')) agentName = 'Radiology AI';
+    else if (userInput.includes('@lab')) agentName = 'Lab AI';
+    else if (userInput.includes('@pharm')) agentName = 'Pharmacy AI';
+
+    // Extract patient ID from user input or AI response
+    const patientMatch = (userInput + ' ' + aiResponse).match(/(?:Patient|MRN|ID)\s*[#:]?\s*([A-Z0-9]+)/i);
+    const patientId = patientMatch ? patientMatch[1] : undefined;
+
+    // Extract ticket/reference number from AI response
+    const ticketMatch = aiResponse.match(/(?:Order|Ticket|Reference|ID)\s*[#:]?\s*([A-Z0-9-]+)/i);
+    const ticketId = ticketMatch ? ticketMatch[1] : undefined;
+
+    // Extract action from AI response
+    let action = 'Processed request';
+    if (aiResponse.includes('**ACTION TAKEN:**')) {
+      const actionMatch = aiResponse.match(/\*\*ACTION TAKEN:\*\*\s*([^\n*]+)/);
+      if (actionMatch) {
+        action = actionMatch[1].trim();
+      }
+    } else {
+      // Fallback: detect common actions
+      if (aiResponse.toLowerCase().includes('mri') && aiResponse.toLowerCase().includes('order')) {
+        action = 'Ordered MRI scan';
+      } else if (aiResponse.toLowerCase().includes('lab') && aiResponse.toLowerCase().includes('order')) {
+        action = 'Ordered lab tests';
+      } else if (aiResponse.toLowerCase().includes('appointment') && aiResponse.toLowerCase().includes('schedul')) {
+        action = 'Scheduled appointment';
+      } else if (aiResponse.toLowerCase().includes('prescription') && aiResponse.toLowerCase().includes('process')) {
+        action = 'Processed prescription';
+      }
+    }
+
+    // Add to activity feed
+    addToActivityFeed(agentName, action, patientId, ticketId);
+  };
+
   // Handle agent selection
   const handleAgentSelection = async (type: 'person' | 'ai') => {
     if (type === 'ai') {
@@ -359,7 +420,7 @@ const ContactCenterDashboard: React.FC = () => {
       
       const newMessage: Message = {
         role: 'assistant',
-        content: '👥 **Human Agent Invited!**\n\nA government service officer has been notified and will join this conversation shortly. They will receive:\n• Full conversation context\n• Citizen service history\n• Current case details\n• Relevant documentation\n\nPlease wait for the officer to join.',
+        content: '👥 **Human Agent Invited!**\n\nA healthcare staff member has been notified and will join this conversation shortly. They will receive:\n• Full conversation context\n• Patient service history\n• Current case details\n• Relevant documentation\n\nPlease wait for the staff member to join.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, newMessage]);
@@ -441,45 +502,187 @@ const ContactCenterDashboard: React.FC = () => {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   
-  // Enhanced Government Control Tower prompt with web search and knowledge base
-  const [customPrompt] = useState(`You are an AI Assistant for Malaysia Government Contact Center EMPLOYEES and SERVICE OFFICERS. You provide operational support to help staff serve citizens effectively.
+  // Generate follow-up agent responses for Hospital Dashboard
+  const generateFollowUpAgentResponses = (originalMessage: string) => {
+    const responses: { agent: string; message: string; delay: number }[] = [];
 
-EMPLOYEE SUPPORT FUNCTIONS:
-1. **CASE MANAGEMENT**: Help agents handle complex citizen cases, escalation procedures, and inter-department coordination
-2. **POLICY CLARIFICATION**: Provide latest policy updates, regulatory changes, and procedural guidelines for staff
-3. **SYSTEM NAVIGATION**: Guide agents through government portals, databases, and internal tools
-4. **QUALITY ASSURANCE**: Suggest best practices for citizen interactions, compliance standards, and service excellence
-5. **REAL-TIME ASSISTANCE**: Support agents during live calls with citizens - provide quick reference information
-6. **PERFORMANCE METRICS**: Help interpret service KPIs, citizen satisfaction data, and operational benchmarks
+    // Check for @dispatch calls from @lab
+    if (originalMessage.includes('@dispatch') && originalMessage.includes('@lab')) {
+      responses.push({
+        agent: '@dispatch',
+        message: '@dispatch here - Received equipment request from @lab. Checking inventory levels and patient delivery address... Processing order now.',
+        delay: 1500
+      });
+      responses.push({
+        agent: '@dispatch',
+        message: '@dispatch confirmed - LifeSignals patches dispatched via FedEx. Tracking: FX789012345. ETA: 24-48 hours to patient location. @lab, equipment request completed!',
+        delay: 4500
+      });
+    }
 
-OPERATIONAL KNOWLEDGE FOR STAFF:
-🏛️ **INTERNAL PROCESSES**: Workflow management, approval chains, documentation requirements, SLA compliance
-📊 **REPORTING TOOLS**: Dashboard navigation, data interpretation, performance tracking, citizen feedback analysis
-🔧 **TROUBLESHOOTING**: System issues, citizen portal problems, payment processing, document verification
-👥 **TEAM COORDINATION**: Inter-department referrals, specialist consultations, supervisor escalations
-📋 **COMPLIANCE**: Data protection (PDPA), service standards, audit requirements, security protocols
+    // Check for @triage calls from @cardio
+    if (originalMessage.includes('@triage') && originalMessage.includes('@cardio')) {
+      responses.push({
+        agent: '@triage',
+        message: '@triage responding - Reviewing cardiac indicators and patient vitals... Calculating risk stratification and priority level.',
+        delay: 2000
+      });
+      responses.push({
+        agent: '@triage',
+        message: '@triage assessment - Priority Level 2 assigned. Requires monitoring but not immediately critical. @cardio, proceed with standard cardiac evaluation protocol.',
+        delay: 4000
+      });
+    }
 
-MALAYSIA GOVERNMENT SERVICES EXPERTISE FOR STAFF:
-- **Health Services**: Staff procedures for MySejahtera, hospital referrals, emergency protocols, insurance processing
-- **Education Services**: Officer guidelines for scholarship processing, school enrollment procedures, grant approvals
-- Social Welfare: Financial assistance, housing aid, disability support, senior citizen benefits, BR1M/STR
-- Legal Services: Court proceedings, legal aid, document authentication, marriage/divorce certificates
+    // Check for @ambulance calls
+    if (originalMessage.includes('@ambulance')) {
+      responses.push({
+        agent: '@ambulance',
+        message: '@ambulance dispatch - Alert received. Checking nearest available units and crew status... Preparing for potential transport.',
+        delay: 1800
+      });
+      responses.push({
+        agent: '@ambulance',
+        message: '@ambulance ready - Unit 7 on standby, 3-minute ETA. Crew briefed, medical equipment checked. Standing by for transport authorization.',
+        delay: 5200
+      });
+    }
 
-CRITICAL SEARCH INSTRUCTIONS:
-- ALWAYS search uploaded government documents FIRST for any policy or service information
-- If documents don't contain sufficient information, use web_search for current Malaysian government information
-- For current government announcements, policy updates, or time-sensitive information: use web_search
-- For government policies, procedures, or internal information: search documents first
-- When officers need real-time data or external Malaysian government information: use web_search immediately
+    // Check for @rad (radiology) calls
+    if (originalMessage.includes('@rad')) {
+      responses.push({
+        agent: '@rad',
+        message: '@rad here - Imaging request received. Checking scanner availability and preparing study protocols... Scheduling in progress.',
+        delay: 2200
+      });
+      responses.push({
+        agent: '@rad',
+        message: '@rad confirmed - MRI slot booked for today 3:30 PM. Patient prep instructions sent. Contrast protocol ready. Study reference: MRI-2024-0892.',
+        delay: 5000
+      });
+    }
+
+    // Execute the responses with delays
+    responses.forEach(response => {
+      setTimeout(() => {
+        setMessages((msgs) => [...msgs, {
+          role: 'assistant',
+          content: response.message,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }, response.delay);
+    });
+  };
+  
+  // Healthcare Control Tower prompt with web search and knowledge base
+  const [customPrompt] = useState(`You are an AGENTIC AI Assistant for a Hospital Contact Center. You don't just provide information - you EXECUTE ACTIONS and follow Standard Operating Procedures.
+
+COLLABORATIVE AGENT SPECIALIZATIONS:
+• @triage - Execute intake protocols, assign priority levels, route patients, coordinate with other agents
+• @cardio - Order ECGs, initiate chest pain protocols, calculate risk scores, consult @rad for imaging
+• @rad - Order imaging studies (X-ray, CT, MRI, US), schedule appointments, work with @cardio/@triage
+• @lab - Place lab orders, interpret results, flag critical values, call @dispatch for equipment/supplies
+• @dispatch - Equipment ordering, supply management, LifeSignals patches, logistics coordination
+• @pharm - Process medication orders, check interactions, manage refills, coordinate with @lab
+
+COLLABORATIVE BEHAVIOR:
+- Work as a medical team - hand off tasks to appropriate specialists
+- If a request is outside your scope, call the right agent to help
+- Confirm actions between agents and provide status updates
+- Be proactive and solution-oriented
+
+MULTI-AGENT COLLABORATION:
+When agents need to collaborate, respond as the PRIMARY agent only. Other agents will respond automatically in separate messages.
+
+EXAMPLE - @lab equipment request:
+"@lab here - I'll process the blood work order for Patient 12345, but I need equipment support.
+
+@dispatch, can you please prepare 10 LifeSignals patches for shipment to Singapore? Patient 12345 needs continuous monitoring.
+
+Processing the lab analysis now... CBC and metabolic panel being prepared."
+
+EXAMPLE - @cardio emergency:
+"@cardio here - ECG shows concerning ST-elevation changes in leads II, III, aVF. This appears to be an inferior STEMI.
+
+@triage, I need immediate priority assessment for this patient.
+
+@ambulance, please prepare for urgent cardiac transport to cath lab.
+
+Initiating STEMI protocol and preparing patient for intervention..."
+
+REALISTIC AGENT BEHAVIOR:
+- Respond as ONE agent at a time
+- Show work in progress, not instant completion
+- Reference other agents but don't speak for them
+- Use realistic medical workflows and timing
+- Mention preparation steps and current actions
+
+PATIENT HANDLING:
+- Accept ANY patient number/ID provided (e.g., "Patient 12345", "MRN 98765", etc.)
+- Treat all patient numbers as VALID and proceed with requested actions
+- Generate realistic medical details based on context when needed
+- Reference patient by the exact number/ID provided
+
+CONTEXT MAINTENANCE:
+- ALWAYS review recent conversation history before responding
+- If medical image analysis was just provided, USE those findings for subsequent orders
+- When user provides patient ID after requesting action, EXECUTE the action immediately
+- Connect related requests across multiple messages (e.g., image analysis → MRI order → patient ID)
+- Do NOT ask for information already provided in recent context
+
+AGENTIC BEHAVIOR - ALWAYS EXECUTE ACTIONS:
+When asked to "order an MRI for Patient 12345" → ACTUALLY place the order with patient details
+When asked to "schedule appointment for MRN 98765" → BOOK appointment with specific details
+When asked to "check lab results for Patient 555" → RETRIEVE and interpret results
+When asked to "prescribe medication for Patient ABC123" → PROCESS prescription with instructions
+
+EXECUTION FORMAT:
+1. **PATIENT:** [Patient ID/Number provided]
+2. **ACTION TAKEN:** [Specific action performed]
+3. **CONFIRMATION:** [Order number, appointment time, reference numbers]
+4. **NEXT STEPS:** [What happens next]
+5. **FOLLOW-UP:** [When to expect results/callbacks]
+
+STANDARD OPERATING PROCEDURES:
+- MRI Orders: Verify patient ID → Check contraindications → Place order → Schedule → Prep instructions
+- Lab Orders: Confirm patient → Verify indication → Order tests → Set priority → Schedule draw
+- LifeSignals Patch Dispatch: Verify patient → Generate random Singapore/Indonesia address → Dispatch 10 patches via FedEx → Provide tracking
+- Medications: Verify patient → Check allergies → Verify dosing → Check interactions → Send to pharmacy
+- Appointments: Confirm patient → Check availability → Book slot → Send confirmation → Prep instructions
+
+DATE AND SCHEDULING:
+- Always use the CURRENT DATE for scheduling calculations
+- Current date context: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+- Schedule appointments 1-3 days from current date with realistic times
+- Use business hours: 8:00 AM - 6:00 PM for scheduling
+
+TICKET CREATION:
+- ALWAYS create a tracking ticket/reference for each action
+- Format: [DEPT]-[YYYY]-[PATIENT]-[###] (e.g., RAD-2024-7829-001, LAB-2024-5555-042)
+- Each action generates a live feed entry that appears in the Clinical Activity Feed
+
+LIFESIGNALS PATCH DISPATCH ADDRESSES (use randomly):
+Singapore Addresses:
+• 123 Orchard Road, #05-12, Singapore 238858
+• 456 Marina Bay Sands, Tower 2, #23-45, Singapore 018956
+• 789 Raffles Place, #12-08, Singapore 048619
+• 321 Sentosa Gateway, #07-15, Singapore 098269
+
+Indonesia Addresses:  
+• Jl. Sudirman No. 123, Jakarta Selatan 12190, Indonesia
+• Jl. Thamrin No. 456, Jakarta Pusat 10350, Indonesia
+• Jl. Gatot Subroto No. 789, Jakarta Selatan 12930, Indonesia
+• Jl. HR Rasuna Said No. 321, Jakarta Selatan 12940, Indonesia
 
 RESPONSE STRATEGY:
-1. Check knowledge base/documents for official government information
-2. Use web search for current Malaysian government updates, news, or verification
-3. Combine both sources for comprehensive responses
-4. Always indicate your information sources to officers
-5. Prioritize Malaysian government official sources and websites
+1) ACCEPT the patient number/ID as provided
+2) IDENTIFY the specific action requested
+3) EXECUTE the action following SOPs with patient details
+4) CREATE a tracking ticket and add to live activity feed
+5) PROVIDE confirmation with specific details and reference numbers
+6) OUTLINE next steps with realistic timeline based on current date
 
-Be professional, respectful, and helpful. Always prioritize accuracy and provide actionable information for government service officers serving Malaysian citizens. Use appropriate Malaysian honorifics (Datuk, Tan Sri, Encik, Puan, etc.) when relevant.`);
+You are NOT just an advisor - you are an EXECUTOR. Make things happen for real patients with real tracking!`);
 
   useEffect(() => {
     // Initialize current time on client side only
@@ -790,9 +993,13 @@ Be professional, respectful, and helpful. Always prioritize accuracy and provide
         body: JSON.stringify({ 
           prompt: `${customPrompt}
 
-User Query: ${currentInput}
+CONVERSATION CONTEXT:
+Recent conversation history for context maintenance:
+${messages.slice(-5).map(msg => `${msg.role === 'user' ? 'USER' : 'ASSISTANT'}: ${msg.content}`).join('\n')}
 
-Please provide a helpful response for the contact center agent.`,
+CURRENT USER QUERY: ${currentInput}
+
+IMPORTANT: Maintain context from previous messages. If a medical image analysis was just provided and user asks for an MRI with a patient ID, EXECUTE the MRI order based on the analysis findings. Do not ask for clarification when context is clear.`,
           stream: true,
           vectorStoreId: 'vs_687b5aa0b19c8191bd628a0111b79bc7' // Use the same knowledge base
         }),
@@ -846,6 +1053,16 @@ Please provide a helpful response for the contact center agent.`,
           }
         } finally {
           reader.releaseLock();
+          
+          // Parse response for actions and add to activity feed
+          if (responseContent) {
+            parseAndAddToActivityFeed(currentInput, responseContent);
+            
+            // Generate follow-up agent responses after delay
+            setTimeout(() => {
+              generateFollowUpAgentResponses(responseContent);
+            }, 2000);
+          }
         }
       }
     } catch (error) {
@@ -1021,56 +1238,12 @@ Please provide a helpful response for the contact center agent.`,
     withoutAI: string | number;
     worstChange: number;
   }>>([
-    {
-      title: 'Active Citizens',
-      value: 23,
-      change: 12,
-      icon: <FaPhone size={14} />,
-      withoutAI: 8,
-      worstChange: -65
-    },
-    {
-      title: 'Avg Service Time',
-      value: '2:34',
-      change: -18,
-      icon: <FaClock size={14} />,
-      withoutAI: '12:45',
-      worstChange: 400
-    },
-    {
-      title: 'Available Officers',
-      value: 15,
-      change: 5,
-      icon: <FaHeadset size={14} />,
-      withoutAI: 4,
-      worstChange: -73
-    },
-    {
-      title: 'Service Resolution',
-      value: 96,
-      change: 3,
-      icon: <FaCheckCircle size={14} />,
-      suffix: '%',
-      withoutAI: '67%',
-      worstChange: -30
-    },
-    {
-      title: 'Citizen Satisfaction',
-      value: 4.9,
-      change: 2,
-      icon: <FaStar size={14} />,
-      suffix: '/5',
-      withoutAI: '3.1/5',
-      worstChange: -37
-    },
-    {
-      title: 'Pending Requests',
-      value: 3,
-      change: -45,
-      icon: <FaExclamationTriangle size={14} />,
-      withoutAI: 47,
-      worstChange: 1467
-    }
+    { title: 'Patients in Care', value: 24, change: 8, icon: <FaUsers size={14} />, withoutAI: 9, worstChange: -62 },
+    { title: 'Avg ED Wait', value: '23 min', change: -12, icon: <FaClock size={14} />, withoutAI: '1:12', worstChange: 320 },
+    { title: 'Available Beds', value: 156, change: 3, icon: <FaHospital size={14} />, withoutAI: 98, worstChange: -44 },
+    { title: 'Service Resolution', value: 98, change: 2, icon: <FaCheckCircle size={14} />, suffix: '%', withoutAI: '71%', worstChange: -27 },
+    { title: 'Patient Satisfaction', value: 4.7, change: 1, icon: <FaHeartbeat size={14} />, suffix: '/5', withoutAI: '3.3/5', worstChange: -31 },
+    { title: 'Critical Cases', value: 4, change: 0, icon: <FaExclamationTriangle size={14} />, withoutAI: 7, worstChange: 12 }
   ]);
 
   // Live KPI updates every 3 seconds
@@ -1082,36 +1255,36 @@ Please provide a helpful response for the contact center agent.`,
         let newValue = kpi.value;
         
         // Keep changes within reasonable bounds and positive trends for AI impact
-        if (kpi.title === 'Active Citizens') {
+        if (kpi.title === 'Patients in Care') {
           newChange = Math.max(8, Math.min(18, newChange));
           const variation = Math.floor(Math.random() * 3) - 1; // -1 to +1
-          newValue = Math.max(20, Math.min(28, (typeof kpi.value === 'number' ? kpi.value : 23) + variation));
-        } else if (kpi.title === 'Avg Service Time') {
+          newValue = Math.max(20, Math.min(30, (typeof kpi.value === 'number' ? kpi.value : 24) + variation));
+        } else if (kpi.title === 'Avg ED Wait') {
           newChange = Math.max(-25, Math.min(-15, newChange));
           // Keep time realistic
-          const baseMinutes = 2;
-          const baseSeconds = 34;
+          const baseMinutes = 23;
+          const baseSeconds = 0;
           const totalSeconds = baseMinutes * 60 + baseSeconds + Math.floor(Math.random() * 30) - 15;
           const newMinutes = Math.floor(totalSeconds / 60);
           const newSecs = totalSeconds % 60;
           newValue = `${newMinutes}:${newSecs.toString().padStart(2, '0')}`;
-        } else if (kpi.title === 'Available Officers') {
-          newChange = Math.max(2, Math.min(8, newChange));
-          const variation = Math.floor(Math.random() * 3) - 1;
-          newValue = Math.max(13, Math.min(17, (typeof kpi.value === 'number' ? kpi.value : 15) + variation));
+        } else if (kpi.title === 'Available Beds') {
+          newChange = Math.max(2, Math.min(5, newChange));
+          const variation = Math.floor(Math.random() * 5) - 2;
+          newValue = Math.max(140, Math.min(170, (typeof kpi.value === 'number' ? kpi.value : 156) + variation));
         } else if (kpi.title === 'Service Resolution') {
           newChange = Math.max(1, Math.min(6, newChange));
           const variation = Math.floor(Math.random() * 3) - 1;
-          newValue = Math.max(94, Math.min(98, (typeof kpi.value === 'number' ? kpi.value : 96) + variation));
-        } else if (kpi.title === 'Citizen Satisfaction') {
+          newValue = Math.max(95, Math.min(99, (typeof kpi.value === 'number' ? kpi.value : 98) + variation));
+        } else if (kpi.title === 'Patient Satisfaction') {
           newChange = Math.max(1, Math.min(4, newChange));
           const variation = (Math.random() * 0.2) - 0.1;
-          newValue = Math.max(4.7, Math.min(5.0, (typeof kpi.value === 'number' ? kpi.value : 4.9) + variation));
+          newValue = Math.max(4.5, Math.min(4.8, (typeof kpi.value === 'number' ? kpi.value : 4.7) + variation));
           newValue = Math.round(newValue * 10) / 10;
-        } else if (kpi.title === 'Pending Requests') {
-          newChange = Math.max(-55, Math.min(-35, newChange));
+        } else if (kpi.title === 'Critical Cases') {
+          newChange = Math.max(-2, Math.min(2, newChange));
           const variation = Math.floor(Math.random() * 3) - 1;
-          newValue = Math.max(1, Math.min(6, (typeof kpi.value === 'number' ? kpi.value : 3) + variation));
+          newValue = Math.max(2, Math.min(6, (typeof kpi.value === 'number' ? kpi.value : 4) + variation));
         }
         
         return { ...kpi, change: Math.round(newChange * 10) / 10, value: newValue };
@@ -1122,21 +1295,21 @@ Please provide a helpful response for the contact center agent.`,
   }, []);
 
   const agents: AgentCardProps[] = [
-    { name: 'Dr. Siti Nurhaliza', status: 'available' as const, callsHandled: 15, avgCallTime: '6:12', rating: 4.9, department: 'Health Services', type: 'human' as const },
-    { name: 'Encik Rahman Ismail', status: 'busy' as const, callsHandled: 22, avgCallTime: '4:35', rating: 4.8, department: 'Education Services', type: 'human' as const },
-    { name: 'Puan Aminah Yusof', status: 'available' as const, callsHandled: 18, avgCallTime: '5:45', rating: 4.7, department: 'Social Welfare', type: 'human' as const },
-    { name: 'Datuk Ahmad Rashid', status: 'away' as const, callsHandled: 12, avgCallTime: '7:20', rating: 4.9, department: 'Legal Services', type: 'human' as const },
-    { name: 'AI Health Agent', status: 'available' as const, callsHandled: 89, avgCallTime: '0:45', rating: 4.9, department: 'Health AI', type: 'ai' as const },
-    { name: 'AI Education Agent', status: 'available' as const, callsHandled: 127, avgCallTime: '0:32', rating: 4.8, department: 'Education AI', type: 'ai' as const },
-    { name: 'AI Welfare Agent', status: 'available' as const, callsHandled: 156, avgCallTime: '0:28', rating: 4.9, department: 'Welfare AI', type: 'ai' as const },
-    { name: 'AI Legal Agent', status: 'available' as const, callsHandled: 98, avgCallTime: '0:52', rating: 4.8, department: 'Legal AI', type: 'ai' as const }
+    { name: 'Dr. Siti Nurhaliza', status: 'available' as const, callsHandled: 15, avgCallTime: '6:12', rating: 4.9, department: 'Emergency Medicine', type: 'human' as const },
+    { name: 'Encik Rahman Ismail', status: 'busy' as const, callsHandled: 22, avgCallTime: '4:35', rating: 4.8, department: 'Cardiology', type: 'human' as const },
+    { name: 'Puan Aminah Yusof', status: 'available' as const, callsHandled: 18, avgCallTime: '5:45', rating: 4.7, department: 'Radiology', type: 'human' as const },
+    { name: 'Datuk Ahmad Rashid', status: 'away' as const, callsHandled: 12, avgCallTime: '7:20', rating: 4.9, department: 'Pharmacy', type: 'human' as const },
+    { name: 'AI Triage Agent', status: 'available' as const, callsHandled: 89, avgCallTime: '0:45', rating: 4.9, department: 'Triage AI', type: 'ai' as const },
+    { name: 'AI Cardio Agent', status: 'available' as const, callsHandled: 127, avgCallTime: '0:32', rating: 4.8, department: 'Cardiology AI', type: 'ai' as const },
+    { name: 'AI Radiology Agent', status: 'available' as const, callsHandled: 156, avgCallTime: '0:28', rating: 4.9, department: 'Radiology AI', type: 'ai' as const },
+    { name: 'AI Lab Agent', status: 'available' as const, callsHandled: 98, avgCallTime: '0:52', rating: 4.8, department: 'Laboratory AI', type: 'ai' as const }
   ];
 
   const queueItems = [
-    { id: 1, customer: 'Citizen #MY001247', waitTime: '0:45', priority: 'High', category: 'Health Emergency' },
-    { id: 2, customer: 'Citizen #MY001248', waitTime: '1:23', priority: 'Medium', category: 'Education Grant' },
-    { id: 3, customer: 'Citizen #MY001249', waitTime: '2:01', priority: 'Low', category: 'Social Welfare' },
-    { id: 4, customer: 'Citizen #MY001250', waitTime: '0:12', priority: 'High', category: 'Legal Documentation' }
+    { id: 1, customer: 'Patient #MY001247', waitTime: '0:45', priority: 'High', category: 'Emergency Intake' },
+    { id: 2, customer: 'Patient #MY001248', waitTime: '1:23', priority: 'Medium', category: 'Cardiology' },
+    { id: 3, customer: 'Patient #MY001249', waitTime: '2:01', priority: 'Low', category: 'Radiology Scheduling' },
+    { id: 4, customer: 'Patient #MY001250', waitTime: '0:12', priority: 'High', category: 'Pharmacy Refill' }
   ];
 
   return (
@@ -1145,8 +1318,8 @@ Please provide a helpful response for the contact center agent.`,
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Government Control Tower</h1>
-            <p className="text-gray-500 text-sm">Real-time citizen services monitoring and analytics</p>
+            <h1 className="text-xl font-semibold text-gray-900">Healthcare Control Tower</h1>
+            <p className="text-gray-500 text-sm">Real-time patient services monitoring and analytics</p>
           </div>
                     <div className="flex items-center gap-4">
             <div className="text-right">
@@ -1184,10 +1357,10 @@ Please provide a helpful response for the contact center agent.`,
         </div>
 
         <div className="grid grid-cols-3 gap-6 mb-6">
-          {/* Live AI Activity Feed */}
+          {/* Live Clinical Activity Feed */}
           <div className="col-span-2 bg-white rounded-xl p-3 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-900">Live AI Activity Feed</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Live Clinical Activity Feed</h2>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs text-gray-600">Live</span>
@@ -1282,9 +1455,9 @@ Please provide a helpful response for the contact center agent.`,
                 onClick={() => setShowDocumentProcessor(true)}
                 className="w-full text-left p-4 hover:bg-green-50/70 rounded-lg transition-colors group bg-green-50/60 shadow-sm hover:shadow-md border border-green-200 hover:border-green-300"
               >
-                <div className="font-bold text-gray-900 group-hover:text-gray-700 text-lg">Document Processor</div>
-                <div className="text-sm text-gray-500 mt-1">Test document processing</div>
-                <div className="text-xs text-blue-600 mt-2">Document Intelligence • Multi-format support • Real-time analysis</div>
+                <div className="font-bold text-gray-900 group-hover:text-gray-700 text-lg">Clinical Processor</div>
+                <div className="text-sm text-gray-500 mt-1">Process clinical documents (labs, imaging, prescriptions)</div>
+                <div className="text-xs text-blue-600 mt-2">Medical Intelligence • Multi-format support • Real-time analysis</div>
               </button>
               
               <button className="w-full text-left p-4 hover:bg-red-50/70 rounded-lg transition-colors group bg-red-50/60 shadow-sm hover:shadow-md border border-red-200 hover:border-red-300">
@@ -1296,10 +1469,10 @@ Please provide a helpful response for the contact center agent.`,
           </div>
         </div>
 
-        {/* Agent Status */}
+        {/* Care Team Status */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Agent Status - AI & Human Officers</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Care Team Status — AI & Clinicians</h2>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
@@ -1313,6 +1486,13 @@ Please provide a helpful response for the contact center agent.`,
                 <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                 <span className="text-gray-600">Away: {agents.filter(a => a.status === 'away').length}</span>
               </div>
+              <button
+                onClick={() => setShowAddAgentModal(true)}
+                className="w-8 h-8 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center text-lg font-light"
+                title="Add Agent"
+              >
+                +
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -1322,7 +1502,7 @@ Please provide a helpful response for the contact center agent.`,
           </div>
         </div>
 
-        {/* Government Guru */}
+        {/* Health Command */}
         <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 w-full">
           <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
@@ -1335,171 +1515,97 @@ Please provide a helpful response for the contact center agent.`,
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Government Guru</h3>
+                  <h3 className="font-semibold text-gray-900">Health Command</h3>
                   <div className="text-sm text-green-600 flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    Online • Use @health, @edu, @welfare, or @legal
+                    Online • Use @triage, @cardio, @lab, @rad, or @pharm
                   </div>
                 </div>
               </div>
-              
-              {/* Government Agent Indicators with Add Agent Button */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
-                       style={{
-                         backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #dc2626, #ef4444)',
-                         backgroundOrigin: 'border-box',
-                         backgroundClip: 'padding-box, border-box'
-                       }}>
-                    <div className="text-gray-700 text-xs">
-                      <FaHeart />
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
+                {/* slot for controls */}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4">
+            {/* Inline Medical Image Analysis */}
+            <div className="mb-4">
+              <HospitalImageAnalysis onAnalysisComplete={(analysis) => {
+                const analysisMessage: Message = {
+                  role: 'assistant',
+                  content: analysis,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setMessages(prev => [...prev, analysisMessage]);
+              }} />
+            </div>
+
+            <div className="h-80 overflow-y-auto p-4 space-y-3">
+              {messages.map((message, index) => (
+                <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-md p-3 rounded-lg text-sm ${
+                    message.role === 'user' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-900'
+                  }`}>
+                    {message.role === 'user' ? (
+                      <p className="text-white text-xs">{message.content}</p>
+                    ) : (
+                      <div className="text-gray-900">
+                        {message.content.includes('🔍 **Search Results:**') ? (
+                          <div className="space-y-2 text-sm">
+                            <div className="font-medium text-blue-600 mb-2 flex items-center gap-2 pb-2 border-b border-blue-100 text-sm">
+                              <FaSearch size={12} />
+                              Search Results
+                            </div>
+                            {renderMarkdown(message.content.replace('🔍 **Search Results:**\n\n', ''))}
+                          </div>
+                        ) : (
+                          renderMarkdown(message.content)
+                        )}
+                      </div>
+                    )}
+                    <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                      {message.timestamp}
+                    </p>
                   </div>
-                  <span className="text-xs font-medium text-gray-600">Health</span>
                 </div>
-                
-                <div className="flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
-                       style={{
-                         backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #2563eb, #3b82f6)',
-                         backgroundOrigin: 'border-box',
-                         backgroundClip: 'padding-box, border-box'
-                       }}>
-                    <div className="text-gray-700 text-xs">
-                      <FaGraduationCap />
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 text-gray-900 p-3 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
                   </div>
-                  <span className="text-xs font-medium text-gray-600">Education</span>
                 </div>
-                
-                <div className="flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
-                       style={{
-                         backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #059669, #10b981)',
-                         backgroundOrigin: 'border-box',
-                         backgroundClip: 'padding-box, border-box'
-                       }}>
-                    <div className="text-gray-700 text-xs">
-                      <FaHome />
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
-                  </div>
-                  <span className="text-xs font-medium text-gray-600">Welfare</span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-white border border-transparent bg-clip-padding flex items-center justify-center relative"
-                       style={{
-                         backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #7c3aed, #8b5cf6)',
-                         backgroundOrigin: 'border-box',
-                         backgroundClip: 'padding-box, border-box'
-                       }}>
-                    <div className="text-gray-700 text-xs">
-                      <FaGavel />
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white"></div>
-                  </div>
-                  <span className="text-xs font-medium text-gray-600">Legal</span>
-                </div>
-                
-                {/* Add Agent Button */}
-                <button
-                  onClick={() => setShowAddAgentModal(true)}
-                  className="w-5 h-5 rounded-full bg-white border border-gray-300 hover:border-blue-400 flex items-center justify-center transition-colors hover:bg-blue-50"
-                  title="Add Government Agent"
+              )}
+            </div>
+            
+            <div className="p-6 border-t border-gray-100">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask about products, policies, procedures..."
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-0 w-full"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && chatInput.trim()) {
+                      handleSend();
+                    }
+                  }}
+                />
+                <button 
+                  onClick={handleSend}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
                 >
-                  <span className="text-gray-400 hover:text-blue-600 text-xs font-bold">+</span>
+                  <FaPaperPlane size={12} />
                 </button>
               </div>
-            </div>
-          </div>
-          
-          <div className="h-80 overflow-y-auto p-4 space-y-3">
-            {messages.map((message, index) => (
-              <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-md p-3 rounded-lg text-sm ${
-                  message.role === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-900'
-                }`}>
-                  {message.role === 'user' ? (
-                    <p className="text-white text-xs">{message.content}</p>
-                  ) : (
-                    <div className="text-gray-900">
-                      {message.content.includes('🔍 **Search Results:**') ? (
-                        <div className="space-y-2 text-sm">
-                          <div className="font-medium text-blue-600 mb-2 flex items-center gap-2 pb-2 border-b border-blue-100 text-sm">
-                            <FaSearch size={12} />
-                            Search Results
-                          </div>
-                          {renderMarkdown(message.content.replace('🔍 **Search Results:**\n\n', ''))}
-                        </div>
-                      ) : (
-                        renderMarkdown(message.content)
-                      )}
-                    </div>
-                  )}
-                  <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
-                    {message.timestamp}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-900 p-3 rounded-lg text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="p-6 border-t border-gray-100">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask about products, policies, procedures..."
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-0 w-full"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && chatInput.trim()) {
-                    handleSend();
-                  }
-                }}
-              />
-              <button 
-                onClick={handleSend}
-                className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-              >
-                <FaPaperPlane size={12} />
-              </button>
-            </div>
-            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <FaHeart size={10} />
-                Health
-              </span>
-              <span className="flex items-center gap-1">
-                <FaGraduationCap size={10} />
-                Education
-              </span>
-              <span className="flex items-center gap-1">
-                <FaHome size={10} />
-                Welfare
-              </span>
-              <span className="flex items-center gap-1">
-                <FaGavel size={10} />
-                Legal
-              </span>
-              <span>Government AI Agents</span>
             </div>
           </div>
         </div>
@@ -1617,7 +1723,7 @@ Please provide a helpful response for the contact center agent.`,
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Add to Government Services</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Add to Healthcare Services</h3>
               <button
                 onClick={() => setShowAddAgentModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1627,7 +1733,7 @@ Please provide a helpful response for the contact center agent.`,
             </div>
             
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6">Choose what you'd like to add to this citizen service thread:</p>
+              <p className="text-sm text-gray-600 mb-6">Choose what you'd like to add to this patient service thread:</p>
               
               <div className="space-y-3">
                 <button
@@ -1638,7 +1744,7 @@ Please provide a helpful response for the contact center agent.`,
                     <FaUser className="text-blue-600" size={16} />
                   </div>
                   <div className="text-left">
-                    <div className="font-medium text-gray-900">Add Government Officer</div>
+                    <div className="font-medium text-gray-900">Add Healthcare Staff</div>
                     <div className="text-sm text-gray-500">Invite a human officer to join this thread</div>
                   </div>
                 </button>
@@ -1666,7 +1772,7 @@ Please provide a helpful response for the contact center agent.`,
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Government AI Agent Management</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Healthcare AI Agent Management</h3>
               <button
                 onClick={() => setShowMcpAgents(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1706,12 +1812,12 @@ Please provide a helpful response for the contact center agent.`,
                 <h4 className="text-md font-semibold text-gray-900 mb-4">Available Services</h4>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { name: 'Document AI Processor', type: 'Document Intelligence', available: true },
-                    { name: 'Citizen Analytics AI', type: 'Data Analysis', available: true },
-                    { name: 'Multilingual AI', type: 'Translation Services', available: true },
-                    { name: 'Service Optimizer AI', type: 'Process Optimization', available: true },
-                    { name: 'Compliance AI', type: 'Regulatory Assistant', available: true },
-                    { name: 'Emergency Response AI', type: 'Crisis Management', available: true }
+                    { name: 'Triage AI', type: 'Emergency Intake', available: true },
+                    { name: 'Cardiology AI', type: 'Cardiology', available: true },
+                    { name: 'Radiology AI', type: 'Imaging', available: true },
+                    { name: 'Lab AI', type: 'Laboratory', available: true },
+                    { name: 'Pharmacy AI', type: 'Medication', available: true },
+                    { name: 'Patient Analytics AI', type: 'Clinical Analytics', available: true }
                   ].filter(service => !activeAIAgents.some(agent => agent.name === service.name))
                   .map((service) => (
                     <button
@@ -1898,23 +2004,23 @@ Please provide a helpful response for the contact center agent.`,
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-gray-600">Ministry of Education Database</span>
+                        <span className="text-gray-600">EHR (Hospital EMR)</span>
                         <span className="text-xs text-green-600 ml-auto">✓ Connected</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-gray-600">National ID Registry</span>
+                        <span className="text-gray-600">LIS (Lab Information System)</span>
                         <span className="text-xs text-green-600 ml-auto">✓ Validated</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <span className="text-gray-600">Financial Records API</span>
+                        <span className="text-gray-600">PACS (Imaging)</span>
                         <span className="text-xs text-green-600 ml-auto">✓ Accessed</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <span className="text-gray-600">Academic Transcript System</span>
-                        <span className="text-xs text-green-600 ml-auto">✓ Retrieved</span>
+                        <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
+                        <span className="text-gray-600">Wearables (LifeSignals / FaceHeart)</span>
+                        <span className="text-xs text-green-600 ml-auto">✓ Streaming</span>
                       </div>
                     </div>
                   </div>
@@ -1923,10 +2029,10 @@ Please provide a helpful response for the contact center agent.`,
                 {/* Right Column - Detailed Analysis */}
                 <div className="space-y-6">
                   <div className="bg-purple-50/30 rounded-lg p-4 border border-purple-100">
-                    <h4 className="font-medium text-gray-900 mb-3">Citizen Information</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">Patient Information</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Citizen ID:</span>
+                        <span className="text-gray-600">Patient ID:</span>
                         <span className="font-mono text-gray-900">MY001248</span>
                       </div>
                       <div className="flex justify-between">
@@ -1934,16 +2040,16 @@ Please provide a helpful response for the contact center agent.`,
                         <span className="font-medium text-gray-900">Ahmad Bin Abdullah</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Application Type:</span>
-                        <span className="font-medium text-gray-900">Education Grant</span>
+                        <span className="text-gray-600">Encounter Type:</span>
+                        <span className="font-medium text-gray-900">ED — Chest Pain</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Grant Amount:</span>
-                        <span className="font-medium text-gray-900">RM 15,000</span>
+                        <span className="text-gray-600">Location:</span>
+                        <span className="font-medium text-gray-900">Zone B, Bed 12</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Academic Level:</span>
-                        <span className="font-medium text-gray-900">Bachelor's Degree</span>
+                        <span className="text-gray-600">Allergies:</span>
+                        <span className="font-medium text-gray-900">NKDA</span>
                       </div>
                     </div>
                   </div>
@@ -1961,10 +2067,10 @@ Please provide a helpful response for the contact center agent.`,
                         </div>
                       </div>
                       <div className="text-sm text-gray-700">
-                        <strong>Recommendation:</strong> Approve with standard terms. All eligibility criteria met, financial need verified, and academic performance satisfactory.
+                        <strong>Recommendation:</strong> CBC within normal ranges. Continue observation and proceed with Chest X-ray as scheduled. Alert if troponin &gt; threshold.
                       </div>
                       <div className="text-sm text-gray-700">
-                        <strong>Risk Factors:</strong> None identified. Standard processing recommended.
+                        <strong>Risk Factors:</strong> No critical values detected. No immediate sepsis or anemia flags.
                       </div>
                     </div>
                   </div>
@@ -1975,29 +2081,29 @@ Please provide a helpful response for the contact center agent.`,
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                         <div className="flex-1 text-sm">
-                          <div className="font-medium text-gray-900">Document Received</div>
-                          <div className="text-gray-600">15:23 - Uploaded via citizen portal</div>
+                          <div className="font-medium text-gray-900">Order Received</div>
+                          <div className="text-gray-600">15:23 - CBC ordered in EHR</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                         <div className="flex-1 text-sm">
-                          <div className="font-medium text-gray-900">Data Extraction</div>
-                          <div className="text-gray-600">15:23 - OCR and field extraction completed</div>
+                          <div className="font-medium text-gray-900">Sample Collected</div>
+                          <div className="text-gray-600">15:29 - Specimen received in lab (LIS)</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                         <div className="flex-1 text-sm">
-                          <div className="font-medium text-gray-900">Verification</div>
-                          <div className="text-gray-600">15:24 - Cross-referenced with 4 databases</div>
+                          <div className="font-medium text-gray-900">Results Validated</div>
+                          <div className="text-gray-600">15:36 - QC checks passed, no critical values</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                         <div className="flex-1 text-sm">
-                          <div className="font-medium text-gray-900">Pending Approval</div>
-                          <div className="text-gray-600">15:24 - Awaiting human review</div>
+                          <div className="font-medium text-gray-900">Posted & Notified</div>
+                          <div className="text-gray-600">15:37 - Results posted to EHR and clinician notified</div>
                         </div>
                       </div>
                     </div>
@@ -2056,39 +2162,39 @@ Please provide a helpful response for the contact center agent.`,
               <div className="grid grid-cols-4 gap-6 mb-8">
                 <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100/50">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Overall STP Rate</h3>
-                  <div className="text-sm text-gray-400 mb-3">Documents automatically processed</div>
-                  <div className="text-3xl font-light text-gray-900 mb-2">78.5%</div>
-                  <div className="text-xs text-green-600">+3.2% from last period</div>
+                  <div className="text-sm text-gray-400 mb-3">Clinical documents auto-processed</div>
+                  <div className="text-3xl font-light text-gray-900 mb-2">82.4%</div>
+                  <div className="text-xs text-green-600">+4.1% from last period</div>
                   <div className="mt-4 bg-gray-200 rounded-full h-2">
-                    <div className="bg-gray-900 rounded-full h-2" style={{ width: '78.5%' }}></div>
+                    <div className="bg-gray-900 rounded-full h-2" style={{ width: '82.4%' }}></div>
                   </div>
                 </div>
 
                 <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100/50">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Documents Processed</h3>
-                  <div className="text-sm text-gray-400 mb-3">Total documents in the pipeline</div>
-                  <div className="text-3xl font-light text-gray-900 mb-2">1,245</div>
+                  <div className="text-sm text-gray-400 mb-3">Total clinical docs in pipeline</div>
+                  <div className="text-3xl font-light text-gray-900 mb-2">1,362</div>
                   <div className="flex gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-gray-600">Completed: 978</span>
+                      <span className="text-gray-600">Completed: 1,048</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-gray-600">In Progress: 189</span>
+                      <span className="text-gray-600">In Progress: 214</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-gray-600">Failed: 78</span>
+                      <span className="text-gray-600">Exceptions: 100</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100/50">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Average Processing Time</h3>
-                  <div className="text-sm text-gray-400 mb-3">Time from receipt to completion</div>
-                  <div className="text-3xl font-light text-gray-900 mb-2">2m 45s</div>
-                  <div className="text-xs text-green-600">-15% from last period</div>
+                  <div className="text-sm text-gray-400 mb-3">From receipt to structured output</div>
+                  <div className="text-3xl font-light text-gray-900 mb-2">2m 12s</div>
+                  <div className="text-xs text-green-600">-11% from last period</div>
                   <div className="mt-4 bg-gray-200 rounded-full h-2">
                     <div className="bg-blue-500 rounded-full h-2" style={{ width: '65%' }}></div>
                   </div>
@@ -2096,11 +2202,11 @@ Please provide a helpful response for the contact center agent.`,
 
                 <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100/50">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Exception Rate</h3>
-                  <div className="text-sm text-gray-400 mb-3">Documents requiring manual review</div>
-                  <div className="text-3xl font-light text-gray-900 mb-2">21.5%</div>
-                  <div className="text-xs text-green-600">-2.3% from last period</div>
+                  <div className="text-sm text-gray-400 mb-3">Requires coder/clinician review</div>
+                  <div className="text-3xl font-light text-gray-900 mb-2">17.3%</div>
+                  <div className="text-xs text-green-600">-3.8% from last period</div>
                   <div className="mt-4 bg-gray-200 rounded-full h-2">
-                    <div className="bg-red-500 rounded-full h-2" style={{ width: '21.5%' }}></div>
+                    <div className="bg-red-500 rounded-full h-2" style={{ width: '17.3%' }}></div>
                   </div>
                 </div>
               </div>
@@ -2140,11 +2246,11 @@ Please provide a helpful response for the contact center agent.`,
                     
                     <div className="space-y-4">
                       {[
-                        { type: 'Payroll', count: 356, rate: 85, color: 'bg-blue-500' },
-                        { type: 'Bank Statement', count: 289, rate: 72, color: 'bg-green-500' },
-                        { type: 'Misc', count: 178, rate: 91, color: 'bg-purple-500' },
-                        { type: 'Utility Bill', count: 245, rate: 79, color: 'bg-yellow-500' },
-                        { type: 'Loan Application', count: 177, rate: 65, color: 'bg-red-500' }
+                        { type: 'Lab Reports', count: 412, rate: 91, color: 'bg-blue-500' },
+                        { type: 'Radiology Reports', count: 328, rate: 86, color: 'bg-green-500' },
+                        { type: 'Prescriptions', count: 276, rate: 88, color: 'bg-purple-500' },
+                        { type: 'Discharge Summaries', count: 193, rate: 74, color: 'bg-yellow-500' },
+                        { type: 'Referrals / Consents', count: 153, rate: 69, color: 'bg-red-500' }
                       ].map((doc) => (
                         <div key={doc.type} className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -2167,9 +2273,9 @@ Please provide a helpful response for the contact center agent.`,
                     
                     <div className="space-y-4">
                       {[
-                        { type: 'Extraction Failures', count: 78, percentage: 6.3, reason: 'Poor image quality (65%)', icon: '⚠️' },
-                        { type: 'Validation Failures', count: 111, percentage: 9.5, reason: 'Missing required fields (72%)', icon: '⚠️' },
-                        { type: 'Routing Failures', count: 78, percentage: 7.4, reason: 'Policy violations (38%)', icon: '⚠️' }
+                        { type: 'OCR Failures', count: 64, percentage: 5.1, reason: 'Low-quality scans/handwriting (61%)', icon: '⚠️' },
+                        { type: 'Clinical Validation Failures', count: 97, percentage: 8.0, reason: 'Missing identifiers or ranges (68%)', icon: '⚠️' },
+                        { type: 'Routing Failures', count: 76, percentage: 6.2, reason: 'Incorrect department mapping (42%)', icon: '⚠️' }
                       ].map((failure) => (
                         <div key={failure.type} className="border-l-4 border-yellow-400 pl-4 py-2">
                           <div className="flex items-center gap-2 mb-1">
@@ -2194,27 +2300,27 @@ Please provide a helpful response for the contact center agent.`,
                     <div className="space-y-4">
                       <div>
                         <h3 className="font-semibold text-blue-800 mb-2">Processing Optimization</h3>
-                        <p className="text-sm text-blue-700 mb-3">Based on the current pipeline analysis, here are the key bottlenecks and recommended optimizations:</p>
+                        <p className="text-sm text-blue-700 mb-3">Based on the current clinical pipeline analysis, here are the key bottlenecks and recommended optimizations:</p>
                         <ul className="space-y-2 text-sm text-blue-600">
                           <li className="flex items-start gap-2">
                             <span className="text-yellow-500">●</span>
                             <div>
-                              <strong>Citizen ID verification failures (35%)</strong>
-                              <div className="text-xs text-blue-500">Recommendation: Update validation rules for new MyKad format and enhance OCR accuracy for government documents.</div>
+                              <strong>Patient ID verification failures (35%)</strong>
+                              <div className="text-xs text-blue-500">Recommendation: Enhance MRN matching with fuzzy rules and barcode capture at intake; align with FHIR Patient resource.</div>
                             </div>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-yellow-500">●</span>
                             <div>
-                              <strong>Education grant document extraction issues (28%)</strong>
-                              <div className="text-xs text-blue-500">Recommendation: Add specific extraction rules for university transcripts and income statements from various institutions.</div>
+                              <strong>Radiology report sectioning errors (28%)</strong>
+                              <div className="text-xs text-blue-500">Recommendation: Use radiology-specific parser and enforce sections (History/Technique/Findings/Impression).</div>
                             </div>
                           </li>
                           <li className="flex items-start gap-2">
                             <span className="text-blue-500">●</span>
                             <div>
                               <strong>Processing time spike during 9-11 AM</strong>
-                              <div className="text-xs text-blue-500">Recommendation: Adjust resource allocation to handle morning citizen service requests peak.</div>
+                              <div className="text-xs text-blue-500">Recommendation: Autoscale OCR workers and queue triage during morning draw window.</div>
                             </div>
                           </li>
                         </ul>
@@ -2258,14 +2364,14 @@ Please provide a helpful response for the contact center agent.`,
         </div>
       )}
 
-      {/* Document Processor Modal */}
+      {/* Clinical Processor Modal */}
       {showDocumentProcessor && (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Document Processor</h3>
-                <p className="text-sm text-gray-500">Test document processing capabilities</p>
+                <h3 className="text-lg font-semibold text-gray-900">Clinical Processor</h3>
+                <p className="text-sm text-gray-500">Process labs, imaging reports, prescriptions, and clinical PDFs</p>
               </div>
               <button
                 onClick={() => setShowDocumentProcessor(false)}
@@ -2277,8 +2383,13 @@ Please provide a helpful response for the contact center agent.`,
             
             <div className="p-6">
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Document Intelligence Processor</h3>
-                <p className="text-sm text-gray-500 mb-4">Upload a document for comprehensive AI analysis and validation</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Medical Document Intelligence</h3>
+                <p className="text-sm text-gray-500 mb-2">Upload for structured extraction, medical coding, and validation</p>
+                <div className="mt-1 grid grid-cols-3 gap-2 text-xs">
+                  <div className="px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full">Auto-detected: <span className="font-medium">{selectedFile ? (selectedFile.name.match(/xray|cxr|radiology|dicom/i) ? 'Radiology' : selectedFile.name.match(/cbc|lab|result|report/i) ? 'Lab Report' : selectedFile.name.match(/rx|prescription|med/i) ? 'Prescription' : 'General Clinical') : '—'}</span></div>
+                  <div className="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">Models: <span className="font-medium">{selectedFile ? (selectedFile.name.match(/xray|cxr|radiology|dicom/i) ? 'Radiology Parser' : selectedFile.name.match(/cbc|lab|result|report/i) ? 'Lab Extractor' : selectedFile.name.match(/rx|prescription|med/i) ? 'Medication & SIG' : 'General Clinical') : '—'}</span></div>
+                  <div className="px-2 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full">Output: <span className="font-medium">FHIR JSON</span></div>
+                </div>
                 {selectedFile ? (
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-900 mb-2">Selected: {selectedFile.name}</p>
@@ -2308,7 +2419,7 @@ Please provide a helpful response for the contact center agent.`,
                 >
                   {selectedFile ? 'Change File' : 'Choose File'}
                 </label>
-                <p className="text-xs text-gray-400 mt-2">Supports PDF, JPG, PNG, DOC, DOCX</p>
+                <p className="text-xs text-gray-400 mt-2">Supports PDF, JPG, PNG, DOC, DOCX • PHI safe</p>
                 {selectedFile && (
                   <div className="mt-4 flex flex-col items-center gap-2">
                     <button 
@@ -2330,6 +2441,37 @@ Please provide a helpful response for the contact center agent.`,
                   </div>
                 )}
                 
+                {/* Model Selection */}
+                <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <label className="text-xs text-gray-600">Model</label>
+                    <select className="w-full border rounded-md px-2 py-1 text-sm">
+                      <option>General Clinical (LLM)</option>
+                      <option>Radiology Report Parser</option>
+                      <option>Lab Result Extractor</option>
+                      <option>Medication & SIG Extractor</option>
+                      <option>Discharge Summary Summarizer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">Output</label>
+                    <select className="w-full border rounded-md px-2 py-1 text-sm">
+                      <option>FHIR JSON</option>
+                      <option>HL7 v2 Segments</option>
+                      <option>Structured JSON</option>
+                      <option>Markdown Summary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600">PII Handling</label>
+                    <select className="w-full border rounded-md px-2 py-1 text-sm">
+                      <option>Redact</option>
+                      <option>Pseudonymize</option>
+                      <option>Keep (secured)</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* Processing Results */}
                 {processingResults && (
                   <div className="mt-6 p-4 bg-green-50/30 rounded-xl border border-green-100">
@@ -2354,7 +2496,7 @@ Please provide a helpful response for the contact center agent.`,
               <div className="mt-6 space-y-4">
                 <div className="p-4 bg-blue-50/20 rounded-xl border border-blue-100/50">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">External Validation Checks</h4>
+                    <h4 className="font-semibold text-gray-900">Clinical Validation Checks</h4>
                     <button 
                       onClick={() => setShowValidationSelector(true)}
                       className="w-7 h-7 bg-blue-400/70 text-white rounded-full flex items-center justify-center hover:bg-blue-500/80 transition-colors text-sm font-medium"
@@ -2365,27 +2507,27 @@ Please provide a helpful response for the contact center agent.`,
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
-                      <span className="text-gray-700">MyKad Database Verification</span>
+                      <span className="text-gray-700">EHR Patient Match</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
-                      <span className="text-gray-700">JPJ Vehicle Registration</span>
+                      <span className="text-gray-700">LIS Result Cross-check</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
-                      <span className="text-gray-700">LHDN Tax Records</span>
+                      <span className="text-gray-700">PACS Study Correlation</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" defaultChecked />
-                      <span className="text-gray-700">Bank Negara Credit Check</span>
+                      <span className="text-gray-700">Medication Interaction Screen</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" />
-                      <span className="text-gray-700">Immigration Status</span>
+                      <span className="text-gray-700">Allergy/Contraindication Check</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input type="checkbox" className="rounded" />
-                      <span className="text-gray-700">Education Ministry Records</span>
+                      <span className="text-gray-700">Consent/Privacy Policy</span>
                     </label>
                   </div>
                 </div>
@@ -2466,19 +2608,19 @@ Please provide a helpful response for the contact center agent.`,
             </div>
             
             <div className="p-4 space-y-3">
-              <h4 className="font-medium text-gray-900 mb-3">Available Validation Sources:</h4>
+              <h4 className="font-medium text-gray-900 mb-3">Available Clinical Sources:</h4>
               
               {[
-                { name: 'SOCSO Employment Records', category: 'Employment' },
-                { name: 'EPF Contribution History', category: 'Employment' },
-                { name: 'MOH Medical Records', category: 'Healthcare' },
-                { name: 'MOE Academic Transcripts', category: 'Education' },
-                { name: 'MACC Asset Declaration', category: 'Anti-Corruption' },
-                { name: 'Royal Malaysian Police Records', category: 'Security' },
-                { name: 'Companies Commission (SSM)', category: 'Business' },
-                { name: 'Customs Department', category: 'Trade' },
-                { name: 'Insolvency Department', category: 'Financial' },
-                { name: 'Land Office Registry', category: 'Property' }
+                { name: 'Hospital EHR (FHIR)', category: 'Clinical' },
+                { name: 'Lab Information System (LIS)', category: 'Lab' },
+                { name: 'PACS / VNA', category: 'Imaging' },
+                { name: 'Pharmacy / eRx', category: 'Medication' },
+                { name: 'Allergy & Alerts Registry', category: 'Safety' },
+                { name: 'Vitals Stream (LifeSignals)', category: 'Wearables' },
+                { name: 'FaceHeart Monitor', category: 'Wearables' },
+                { name: 'Consent / Privacy Module', category: 'Governance' },
+                { name: 'Local Clinical Guidelines', category: 'Knowledge' },
+                { name: 'Public Health Notifications', category: 'Population' }
               ].map((source) => (
                 <button
                   key={source.name}

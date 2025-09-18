@@ -30,7 +30,7 @@ import ContactCenterDashboard from '@/components/ContactCenterDashboard';
 import ExperienceSelector from '@/components/ExperienceSelector';
 import WealthAdvisorInterface from '@/components/WealthAdvisorInterface';
 import BancassuranceInterface from '@/components/BancassuranceInterface';
-import CitizenServicesInterface from '@/components/CitizenServicesInterface';
+import PatientServicesInterface from '@/components/PatientServicesInterface';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import SplashScreen from '@/components/SplashScreen';
 import { getWealthAdvisorPrompt } from '@/utils/wealthAdvisorScenarios';
@@ -53,8 +53,8 @@ interface Conversation {
 }
 
 const NAV_ITEMS = [
-  { icon: <FaPhone size={20} />, label: 'Government Control Tower', key: 'contact', active: true },
-  { icon: <FaGlobe size={20} />, label: 'Citizen Services', key: 'citizen', active: false },
+  { icon: <FaPhone size={20} />, label: 'Healthcare Control Tower', key: 'contact', active: true },
+  { icon: <FaGlobe size={20} />, label: 'Patient Care Concierge', key: 'citizen', active: false },
   { icon: <FaBell size={20} />, label: 'Alerts & Notifications', key: 'alerts', active: false },
   { icon: <FaArchive size={20} />, label: 'Knowledge Base', key: 'knowledge', active: false },
   { icon: <FaCog size={20} />, label: 'Global Settings', key: 'settings', active: false },
@@ -63,73 +63,73 @@ const NAV_ITEMS = [
 const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: '1',
-    name: 'Immigration Department',
-    lastMessage: 'Your passport renewal application (REF: IMM-2024-001234) has been approved. Please collect your new passport from Putrajaya Immigration Office within 30 days. Bring original MyKad and collection receipt.',
+    name: 'Emergency Department',
+    lastMessage: 'Triage update: Chest pain patient (ID: MY001247) prioritized to urgent. ECG ordered and vitals monitored.',
     timestamp: '2 min ago',
-    avatar: 'ID',
+    avatar: 'ED',
     unread: 2,
     isOnline: true
   },
   {
     id: '2',
-    name: 'Ministry of Health',
-    lastMessage: 'Health screening appointment confirmation for Ahmad Bin Abdullah. Date: Tomorrow 10:30 AM at Klinik Kesihatan Bangsar. Please bring MyKad, previous medical records, and arrive 15 minutes early.',
+    name: 'Cardiology',
+    lastMessage: 'Consult scheduled for Ahmad Bin Abdullah. Echo at 11:15 AM; please review ECG and labs beforehand.',
     timestamp: '8 min ago',
-    avatar: 'MH',
+    avatar: 'CD',
     unread: 3,
     isOnline: true
   },
   {
     id: '3',
-    name: 'Inland Revenue Board',
-    lastMessage: 'Tax refund processed successfully! RM 2,450 will be credited to your Maybank account (****1234) within 3-5 working days. E-filing for 2024 opens January 1st. Reference: TAX-REF-2024-5678.',
+    name: 'Radiology',
+    lastMessage: 'Chest X-ray booked for 12:05 PM. No pregnancy or contrast allergy reported. Portable requested.',
     timestamp: '15 min ago',
-    avatar: 'IRB',
+    avatar: 'RAD',
     unread: 0,
     isOnline: true
   },
   {
     id: '4',
-    name: 'Ministry of Education',
-    lastMessage: 'Scholarship application update: Your Excellence Program application is under final review. Interview scheduled for next Monday 2:00 PM at MOE Putrajaya. Prepare academic transcripts and recommendation letters.',
+    name: 'Laboratory',
+    lastMessage: 'CBC and Troponin results posted. Troponin pending confirmatory run in 10 minutes.',
     timestamp: '32 min ago',
-    avatar: 'MOE',
+    avatar: 'LAB',
     unread: 1,
     isOnline: false
   },
   {
     id: '5',
-    name: 'EPF (Employees Provident Fund)',
-    lastMessage: 'Account balance update: Current EPF balance RM 85,450. Recent contribution: RM 850 (December 2024). Withdrawal application for housing approved. Funds will be transferred within 7 working days.',
+    name: 'Pharmacy',
+    lastMessage: 'Medication reconciliation complete. Flagged interaction between simvastatin and clarithromycin; recommended alternative.',
     timestamp: '1 hour ago',
-    avatar: 'EPF',
+    avatar: 'RX',
     unread: 0,
     isOnline: true
   },
   {
     id: '6',
-    name: 'Road Transport Department',
-    lastMessage: 'Driving license renewal reminder: Your license expires on 31st March 2025. Renew online via MyEG or visit any JPJ office. Required: MyKad, current license, medical certificate (if over 60), and RM 30 fee.',
+    name: 'Bed Management',
+    lastMessage: 'ICU bed availability: 2. Step-down: 4. Estimated transfer readiness for MY001247 in 40 minutes.',
     timestamp: '2 hours ago',
-    avatar: 'RTD',
+    avatar: 'BED',
     unread: 0,
     isOnline: false
   },
   {
     id: '7',
-    name: 'Housing Development Board',
-    lastMessage: 'PR1MA housing application approved! Unit 15-08, Residensi Wilayah, KL. Booking fee: RM 1,000 due within 14 days. Loan pre-approval letter from bank required. Contact officer: Puan Siti (03-2345-6789).',
+    name: 'Discharge Planning',
+    lastMessage: 'Tentative discharge tomorrow pending cardiology sign-off and home oxygen assessment.',
     timestamp: '3 hours ago',
-    avatar: 'HDB',
+    avatar: 'DC',
     unread: 2,
     isOnline: true
   },
   {
     id: '8',
-    name: 'Social Welfare Department',
-    lastMessage: 'Bantuan Rakyat 1Malaysia (BR1M) payment processed. RM 1,200 credited to your account. Next payment: March 2025. Update family income details if changed. Visit JKM office or use online portal.',
+    name: 'Patient Relations',
+    lastMessage: 'Satisfaction survey reminder sent to three recent discharges. Two responses received (avg 4.6/5).',
     timestamp: '4 hours ago',
-    avatar: 'SWD',
+    avatar: 'PR',
     unread: 0,
     isOnline: true
   }
@@ -205,28 +205,25 @@ function HomeContent() {
     const view = searchParams.get('view');
     if (view === 'contact') {
       setCurrentView('contact');
-      setSelectedNav(0); // Government Control Tower nav item
-    } else if (view === 'government') {
-      setCurrentView('government');
-      setSelectedNav(1); // Government Services nav item
-    } else if (view === 'health') {
-      setCurrentView('health');
-      setSelectedNav(2); // Health Portal nav item
+      setSelectedNav(0); // Healthcare Control Tower nav item
     } else if (view === 'citizen') {
       setCurrentView('citizen');
-      setSelectedNav(3); // Citizen Services nav item
-    } else if (view === 'bancassurance') {
-      setCurrentView('bancassurance');
-      setSelectedNav(3); // Legacy Bancassurance nav item
+      setSelectedNav(1); // Patient Care Concierge nav item
+    } else if (view === 'alerts') {
+      setCurrentView('alerts');
+      setSelectedNav(2); // Alerts & Notifications nav item
     } else if (view === 'knowledge') {
       setCurrentView('knowledge');
-      setSelectedNav(5); // Knowledge Base nav item
+      setSelectedNav(3); // Knowledge Base nav item
     } else if (view === 'settings') {
       setCurrentView('settings');
-      setSelectedNav(6); // Settings nav item
+      setSelectedNav(4); // Global Settings nav item
+    } else if (view === 'bancassurance') {
+      setCurrentView('bancassurance');
+      setSelectedNav(1); // Legacy Bancassurance uses patient services slot
     } else {
       setCurrentView('contact');
-      setSelectedNav(0); // Default to Government Control Tower
+      setSelectedNav(0); // Default to Healthcare Control Tower
     }
   }, [searchParams]);
 
@@ -479,10 +476,10 @@ Please provide a comprehensive, well-formatted response that follows these forma
         capabilities = ['business intelligence', 'operational support'];
       }
       
-      return `Welcome to your Government AI Assistant. I'm configured to help you with ${capabilities.join(', ')}, and real-time citizen services. How can I assist you today?`;
+      return `Welcome to your Healthcare AI Assistant. I'm configured to help you with ${capabilities.join(', ')}, and real-time patient services. How can I assist you today?`;
     }
     
-    return 'Welcome to your Government AI Assistant. I can help you with citizen insights, operational analytics, compliance monitoring, and real-time government services. How can I assist you today?';
+    return 'Welcome to your Healthcare AI Assistant. I can help you with patient insights, operational analytics, compliance monitoring, and real-time healthcare services. How can I assist you today?';
   };
 
   // Initialize welcome message when component mounts or prompt changes
@@ -2225,8 +2222,8 @@ ${customPrompt}`,
           <div className="p-6 border-b border-gray-800">
             <div className="flex items-center gap-3 mb-6">
               <div>
-                <h1 className="text-lg font-bold text-white">Government AI Hub</h1>
-                <p className="text-xs text-gray-400">Government Intelligence Platform</p>
+                <h1 className="text-lg font-bold text-white">Healthcare AI Hub</h1>
+                <p className="text-xs text-gray-400">Healthcare Intelligence Platform</p>
               </div>
             </div>
           </div>
@@ -2262,18 +2259,24 @@ ${customPrompt}`,
             <div 
               className="flex items-center gap-3 p-3 rounded-xl bg-gray-900 cursor-pointer hover:bg-gray-800 transition-colors duration-200"
               onClick={() => setShowSplash(true)}
-              title="Click to view Omni-Government Experience"
+              title="Click to view Omni-Health Experience"
             >
               <div className="w-10 h-10 rounded-full bg-white border-2 border-transparent bg-clip-padding flex items-center justify-center text-gray-700 font-semibold relative">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 p-0.5">
                   <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                    <span className="text-gray-700 font-semibold text-sm">SJ</span>
+                    <span className="text-gray-700 font-semibold text-sm">
+                      {currentView === 'citizen' ? 'AB' : 'SJ'}
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-white">Sarah Johnson</div>
-                <div className="text-xs text-gray-400">Operations Director</div>
+                <div className="text-sm font-semibold text-white">
+                  {currentView === 'citizen' ? 'Ahmad Bin Abdullah' : 'Sarah Johnson'}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {currentView === 'citizen' ? 'Patient ID 12345' : 'Operations Director'}
+                </div>
               </div>
               <button className="text-gray-500 hover:text-gray-300">
                 <FaEllipsisV size={16} />
@@ -2282,8 +2285,8 @@ ${customPrompt}`,
           </div>
         </aside>
 
-        {/* Column 2: Messages Section - Visible in all views except settings and knowledge */}
-        {!['settings', 'knowledge'].includes(currentView) && (
+        {/* Column 2: Messages Section - Only visible in hospital view (contact) */}
+        {currentView === 'contact' && (
           <div className="w-96 bg-white border-r border-blue-200 flex flex-col shadow-lg">
           {/* Messages Header */}
           <div className="p-6 border-b border-blue-100">
@@ -2378,11 +2381,11 @@ ${customPrompt}`,
         {/* Column 3: Chat Area, Knowledge Base, or Settings */}
         <main className="flex-1 flex flex-col bg-white">
           {currentView === 'contact' ? (
-            /* Government Control Tower Dashboard */
+            /* Healthcare Control Tower Dashboard */
             <ContactCenterDashboard />
           ) : currentView === 'citizen' ? (
-            /* Citizen Services */
-            <CitizenServicesInterface />
+            /* Patient Care Concierge */
+            <PatientServicesInterface />
           ) : currentView === 'bancassurance' ? (
             /* Legacy Bancassurance Interface */
             <BancassuranceInterface />
@@ -2737,7 +2740,7 @@ ${customPrompt}`,
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Government AI Assistant</h3>
+                      <h3 className="font-semibold text-gray-900">Healthcare AI Assistant</h3>
                       <div className="text-sm text-green-600 flex items-center gap-1">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         Online • Real-time analytics enabled

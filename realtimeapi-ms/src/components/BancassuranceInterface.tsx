@@ -3617,7 +3617,7 @@ If asked about specific recommendations or underwriting for the current customer
                         { name: 'Insurance Guru', type: 'Insurance Expert', status: 'active' },
                         { name: 'Bank Guru', type: 'Banking Specialist', status: 'active' },
                         { name: 'Compliance Bot', type: 'Regulatory Assistant', status: 'inactive' },
-                        { name: 'Document Processor', type: 'Document Analysis', status: 'active' }
+                        { name: 'Clinical Processor', type: 'Medical Document Analysis', status: 'active' }
                       ],
                       uptime: '99.8%',
                       lastSync: '2 minutes ago'
